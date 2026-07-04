@@ -1,7 +1,15 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/utils/puzzle_generator.dart';
 
-enum GamePhase { loading, playing, paused, levelComplete, gameOver, reviveOffer }
+enum GamePhase {
+  loading,
+  playing,
+  paused,
+  levelComplete,
+  gameOver,
+  reviveOffer,
+  generationError,
+}
 
 class GameState extends Equatable {
   final GamePhase phase;
@@ -100,8 +108,9 @@ class GameState extends Equatable {
       moveHistory: moveHistory ?? this.moveHistory,
       statusMessage: statusMessage ?? this.statusMessage,
       showRuleTutorial: showRuleTutorial ?? this.showRuleTutorial,
-      errorTileIndex: errorTileIndex, // Allow clearing by not defaulting to this.
-      hintTileIndex: hintTileIndex,   // Allow clearing by not defaulting to this.
+      errorTileIndex:
+          errorTileIndex, // Allow clearing by not defaulting to this.
+      hintTileIndex: hintTileIndex, // Allow clearing by not defaulting to this.
       pendingRuleTutorials: pendingRuleTutorials ?? this.pendingRuleTutorials,
     );
   }

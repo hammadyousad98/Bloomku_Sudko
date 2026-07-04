@@ -6,14 +6,22 @@ class PuzzleGrid extends StatelessWidget {
   final int gridSize;
   final List<TileState> states;
   final List<Color> colorMap;
-  final Function(int index) onTileTap;
+  final List<int> colorRegions;
+  final int? errorTileIndex;
+  final int? hintTileIndex;
+  final ValueChanged<int> onTileSingleTap;
+  final ValueChanged<int> onTileDoubleTap;
 
   const PuzzleGrid({
     super.key,
     required this.gridSize,
     required this.states,
     required this.colorMap,
-    required this.onTileTap,
+    required this.colorRegions,
+    required this.onTileSingleTap,
+    required this.onTileDoubleTap,
+    this.errorTileIndex,
+    this.hintTileIndex,
   });
 
   @override
@@ -32,8 +40,12 @@ class PuzzleGrid extends StatelessWidget {
         itemBuilder: (context, index) {
           return GridTileWidget(
             backgroundColor: colorMap[index],
+            colorRegionIndex: colorRegions[index],
             state: states[index],
-            onTap: () => onTileTap(index),
+            onTap: () => onTileSingleTap(index),
+            onDoubleTap: () => onTileDoubleTap(index),
+            hasError: errorTileIndex == index,
+            hasHint: hintTileIndex == index,
           );
         },
       ),

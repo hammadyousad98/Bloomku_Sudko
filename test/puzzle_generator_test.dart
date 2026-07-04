@@ -3,7 +3,8 @@ import 'package:bloomku/core/utils/puzzle_generator.dart';
 
 void main() {
   group('PuzzleGenerator', () {
-    test('gridSizeForLevel returns correct values for levels 1, 9, 16, 31, 50', () {
+    test('gridSizeForLevel returns correct values for levels 1, 9, 16, 31, 50',
+        () {
       expect(PuzzleGenerator.gridSizeForLevel(1, PuzzleTrack.normal), 2);
       expect(PuzzleGenerator.gridSizeForLevel(9, PuzzleTrack.normal), 6);
       expect(PuzzleGenerator.gridSizeForLevel(16, PuzzleTrack.normal), 7);
@@ -11,7 +12,9 @@ void main() {
       expect(PuzzleGenerator.gridSizeForLevel(50, PuzzleTrack.normal), 13);
     });
 
-    test('generate() returns isValid=true for all grid sizes 2-15 and checks rules', () {
+    test(
+        'generate() returns isValid=true for all grid sizes 2-15 and checks rules',
+        () {
       for (int size = 2; size <= 15; size++) {
         final config = PuzzleConfig(
           gridSize: size,
@@ -21,9 +24,12 @@ void main() {
 
         final puzzle = PuzzleGenerator.generate(config);
 
-        expect(puzzle.isValid, true, reason: 'Failed generation for grid size $size');
-        expect(puzzle.solutionIndexes.length, size, reason: 'solutionIndexes length should match gridSize $size');
-        expect(puzzle.colorMap.length, size * size, reason: 'colorMap length should match gridSize * gridSize');
+        expect(puzzle.isValid, true,
+            reason: 'Failed generation for grid size $size');
+        expect(puzzle.solutionIndexes.length, size,
+            reason: 'solutionIndexes length should match gridSize $size');
+        expect(puzzle.colorMap.length, size * size,
+            reason: 'colorMap length should match gridSize * gridSize');
 
         final rows = <int>{};
         final cols = <int>{};
@@ -35,13 +41,20 @@ void main() {
           colors.add(puzzle.colorMap[index]);
         }
 
-        expect(rows.length, size, reason: 'No two solution indexes can share a row on grid size $size');
-        expect(cols.length, size, reason: 'No two solution indexes can share a column on grid size $size');
-        expect(colors.length, size, reason: 'No two solution indexes can share a color region on grid size $size');
+        expect(rows.length, size,
+            reason:
+                'No two solution indexes can share a row on grid size $size');
+        expect(cols.length, size,
+            reason:
+                'No two solution indexes can share a column on grid size $size');
+        expect(colors.length, size,
+            reason:
+                'No two solution indexes can share a color region on grid size $size');
       }
     });
 
-    test('With blockFullDiagonal=true: no two solutions share a full diagonal', () {
+    test('With blockFullDiagonal=true: no two solutions share a full diagonal',
+        () {
       final config = PuzzleConfig(
         gridSize: 8,
         levelNumber: 16,
@@ -84,10 +97,14 @@ void main() {
     });
 
     test('isMinDistanceRuleActive only for Ultra Hard level >= 50', () {
-      expect(PuzzleGenerator.isMinDistanceRuleActive(49, PuzzleTrack.ultraHard), false);
-      expect(PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.ultraHard), true);
-      expect(PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.hard), false);
-      expect(PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.normal), false);
+      expect(PuzzleGenerator.isMinDistanceRuleActive(49, PuzzleTrack.ultraHard),
+          false);
+      expect(PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.ultraHard),
+          true);
+      expect(
+          PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.hard), false);
+      expect(PuzzleGenerator.isMinDistanceRuleActive(50, PuzzleTrack.normal),
+          false);
     });
 
     test('With blockMinDistance=true: solution respects min distance', () {
@@ -128,7 +145,8 @@ void main() {
       expect(PuzzleGenerator.isKnightMoveRuleActive(100), true);
     });
 
-    test('With blockKnightMove=true: no two solutions are a knight move apart', () {
+    test('With blockKnightMove=true: no two solutions are a knight move apart',
+        () {
       final config = PuzzleConfig(
         gridSize: 8,
         levelNumber: 80,
@@ -146,41 +164,116 @@ void main() {
           int dr = (a ~/ config.gridSize - b ~/ config.gridSize).abs();
           int dc = (a % config.gridSize - b % config.gridSize).abs();
           bool isKnight = (dr == 2 && dc == 1) || (dr == 1 && dc == 2);
-          expect(isKnight, false,
-              reason: 'Knight move between $a and $b');
+          expect(isKnight, false, reason: 'Knight move between $a and $b');
         }
       }
+    });
+
+    // ── Determinism & non-repetition across same grid sizes ───────────────
+
+    test(
+        'Different levels that share a grid size produce different puzzles (Normal)',
+        () {
+      // Levels 3-5 all map to 4x4 for Normal track.
+      final config3 = PuzzleGenerator.configForLevel(3, PuzzleTrack.normal);
+      final config4 = PuzzleGenerator.configForLevel(4, PuzzleTrack.normal);
+
+      final puzzle3 = PuzzleGenerator.generate(config3);
+      final puzzle4 = PuzzleGenerator.generate(config4);
+
+      expect(puzzle3.isValid, true);
+      expect(puzzle4.isValid, true);
+
+      expect(puzzle3.gridSize, puzzle4.gridSize);
+      expect(puzzle3.colorMap, isNot(equals(puzzle4.colorMap)),
+          reason: 'colorMap should differ');
+      expect(puzzle3.solutionIndexes, isNot(equals(puzzle4.solutionIndexes)),
+          reason: 'solutionIndexes should differ');
+      // Also ensure the piece placements are not just the same set.
+      expect(puzzle3.solutionIndexes.toSet(),
+          isNot(equals(puzzle4.solutionIndexes.toSet())));
+    });
+
+    test('Same level generates the same puzzle deterministically (Normal)', () {
+      final config = PuzzleGenerator.configForLevel(7, PuzzleTrack.normal);
+
+      final puzzleA = PuzzleGenerator.generate(config);
+      final puzzleB = PuzzleGenerator.generate(config);
+
+      expect(puzzleA.isValid, true);
+      expect(puzzleB.isValid, true);
+
+      expect(puzzleA.gridSize, puzzleB.gridSize);
+      expect(puzzleA.colorMap, equals(puzzleB.colorMap));
+      expect(puzzleA.solutionIndexes, equals(puzzleB.solutionIndexes));
+      expect(puzzleA.lockedIndexes, equals(puzzleB.lockedIndexes));
+      expect(puzzleA.mineIndexes, equals(puzzleB.mineIndexes));
     });
 
     // ── Combined rules stress test ────────────────────────
 
     test('configForLevel correctly activates rules at boundary levels', () {
       // Level 50 Ultra: should have diagonal + minDistance
-      final config50ultra = PuzzleGenerator.configForLevel(50, PuzzleTrack.ultraHard);
+      final config50ultra =
+          PuzzleGenerator.configForLevel(50, PuzzleTrack.ultraHard);
       expect(config50ultra.blockFullDiagonal, true);
       expect(config50ultra.blockMinDistance, true);
       expect(config50ultra.blockKnightMove, false);
 
       // Level 80 Normal: should have knightMove only
-      final config80normal = PuzzleGenerator.configForLevel(80, PuzzleTrack.normal);
+      final config80normal =
+          PuzzleGenerator.configForLevel(80, PuzzleTrack.normal);
       expect(config80normal.blockFullDiagonal, false);
       expect(config80normal.blockMinDistance, false);
       expect(config80normal.blockKnightMove, true);
 
       // Level 80 Ultra: all three rules
-      final config80ultra = PuzzleGenerator.configForLevel(80, PuzzleTrack.ultraHard);
+      final config80ultra =
+          PuzzleGenerator.configForLevel(80, PuzzleTrack.ultraHard);
       expect(config80ultra.blockFullDiagonal, true);
       expect(config80ultra.blockMinDistance, true);
       expect(config80ultra.blockKnightMove, true);
     });
 
-    test('generate() with fallback: Ultra config falls back to Hard on very constrained grids', () {
+    test(
+        'generate() with fallback: Ultra config falls back to Hard on very constrained grids',
+        () {
       // 14×14 Ultra grid with full diagonal + minDistance(5) — tough but should find or fallback
       final config = PuzzleGenerator.configForLevel(50, PuzzleTrack.ultraHard);
       final puzzle = PuzzleGenerator.generate(config);
       // Should either succeed or fall back to Hard — either way isValid should be true
       expect(puzzle.isValid, true,
-          reason: 'Level 50 Ultra should produce valid puzzle (possibly via Hard fallback)');
+          reason:
+              'Level 50 Ultra should produce valid puzzle (possibly via Hard fallback)');
+    });
+
+    test('generates every shipped level and track quickly', () {
+      final slowCases = <String>[];
+
+      for (final track in PuzzleTrack.values) {
+        for (var level = 1; level <= 50; level++) {
+          final config = PuzzleGenerator.configForLevel(level, track);
+          final stopwatch = Stopwatch()..start();
+          final puzzle = PuzzleGenerator.generate(config);
+          stopwatch.stop();
+
+          expect(
+            puzzle.isValid,
+            true,
+            reason:
+                'Invalid puzzle for level $level ${track.name} grid ${config.gridSize}',
+          );
+
+          if (stopwatch.elapsed > const Duration(seconds: 2)) {
+            slowCases.add(
+              'level=$level track=${track.name} grid=${config.gridSize} '
+              'time=${stopwatch.elapsedMilliseconds}ms',
+            );
+          }
+        }
+      }
+
+      expect(slowCases, isEmpty, reason: 'Slow puzzle generation: $slowCases');
     });
   });
 }

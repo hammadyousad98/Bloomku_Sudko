@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 
 enum PuzzleTrack { normal, hard, ultraHard }
 
@@ -58,6 +57,8 @@ class _AttemptCounter {
 
 class PuzzleGenerator {
   static const int _maxAttempts = 50000;
+  static const int _maxSeedRetries = 128;
+  static const Duration _maxGenerationDuration = Duration(milliseconds: 750);
   static const int _maxMines = 3;
   static const int _minMines = 2;
 
@@ -67,12 +68,8 @@ class PuzzleGenerator {
 
     // Fallback: if Ultra failed, try Hard config for the same level
     if (config.track == PuzzleTrack.ultraHard) {
-      debugPrint(
-        '[PuzzleGenerator] WARNING: Ultra generation failed for level '
-        '${config.levelNumber} (grid ${config.gridSize}). '
-        'Falling back to Hard config.',
-      );
-      final fallbackConfig = configForLevel(config.levelNumber, PuzzleTrack.hard);
+      final fallbackConfig =
+          configForLevel(config.levelNumber, PuzzleTrack.hard);
       final fallback = _tryGenerate(fallbackConfig);
       if (fallback.isValid) return fallback;
     }
@@ -81,15 +78,44 @@ class PuzzleGenerator {
   }
 
   static GeneratedPuzzle _tryGenerate(PuzzleConfig config) {
-    int seed = 0;
-    final rng = Random();
+    // Derive deterministic randomness from the logical puzzle identity.
+    // This prevents different levels that share the same gridSize from producing
+    // the exact same layout.
+    //
+    // baseSeed is used for backtracking order (rng) and the initial variant
+    // used by _getSolutionColumns.
+    //
+    // We mix level+track using two large odd constants to reduce collisions
+    // and correlated shuffles between adjacent levels.
+    final int mixed = (config.levelNumber * 2654435761) +
+        (config.track.index * 97) * 1597334677;
 
-    while (seed < 1000) {
-      List<int> solutionCols = _getSolutionColumns(config.gridSize, seed);
+    // seed is the starting point for the retry loop and is also passed into
+    // _getSolutionColumns.
+    final int startSeed = (mixed % 1000).abs();
+
+    final rng = Random(mixed);
+    final stopwatch = Stopwatch()..start();
+
+    for (var retry = 0; retry < _maxSeedRetries; retry++) {
+      if (stopwatch.elapsed > _maxGenerationDuration) {
+        return GeneratedPuzzle.invalid;
+      }
+
+      final seed = (startSeed + retry) % 1000;
+      // Mix the retry seed with the logical identity seed so that
+      // different (level, track) pairs don't collapse to the same puzzle
+      // when generation happens to succeed with the same initial retry seed.
+      final int variantSeed = seed ^ mixed;
+
+      List<int> solutionCols =
+          _getSolutionColumns(config.gridSize, variantSeed);
       List<int> colorMap = _buildColorMap(config.gridSize, solutionCols);
 
       var counter = _AttemptCounter();
-      List<int>? solution = _placePieces(0, [], config.gridSize, config, colorMap, rng, counter);
+      final Random backtrackRng = Random(mixed + seed);
+      List<int>? solution = _placePieces(
+          0, [], config.gridSize, config, colorMap, backtrackRng, counter);
 
       if (solution != null) {
         List<int> lockedIndexes = [];
@@ -136,7 +162,6 @@ class PuzzleGenerator {
           isValid: true,
         );
       }
-      seed++;
     }
 
     return GeneratedPuzzle.invalid;
@@ -258,10 +283,11 @@ class PuzzleGenerator {
 
     for (int col in cols) {
       int index = row * gridSize + col;
-      if (_isValidPlacement(index, row, col, placed, gridSize, config, colorMap)) {
+      if (_isValidPlacement(
+          index, row, col, placed, gridSize, config, colorMap)) {
         counter.count++;
-        var result = _placePieces(
-            row + 1, [...placed, index], gridSize, config, colorMap, rng, counter);
+        var result = _placePieces(row + 1, [...placed, index], gridSize, config,
+            colorMap, rng, counter);
         if (result != null) return result;
       }
     }
@@ -279,7 +305,8 @@ class PuzzleGenerator {
       if (pCol == col) return false;
       if (colorMap[pIndex] == myColor) return false;
       if (gridSize >= 4 && _isAdjacent(index, pIndex, gridSize)) return false;
-      if (config.blockFullDiagonal && _sharesFullDiagonal(index, pIndex, gridSize)) {
+      if (config.blockFullDiagonal &&
+          _sharesFullDiagonal(index, pIndex, gridSize)) {
         return false;
       }
       if (config.blockMinDistance) {

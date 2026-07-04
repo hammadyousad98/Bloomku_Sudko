@@ -5,13 +5,13 @@ class PlayerProgress {
   @Id()
   int id = 0;
 
-  /// Highest level unlocked on Normal track (1–50)
+  /// Next playable level on Normal track (1-50, or 51 when complete)
   int normalHighest = 1;
 
-  /// Highest level unlocked on Hard track (1–50)
+  /// Next playable level on Hard track (1-50, or 51 when complete)
   int hardHighest = 16;
 
-  /// Highest level unlocked on Ultra Hard track (1–50)
+  /// Next playable level on Ultra Hard track (1-50, or 51 when complete)
   int ultraHighest = 31;
 
   /// Total hints owned
@@ -41,7 +41,12 @@ class PlayerProgress {
   /// Whether the knight-move rule tutorial has been shown
   bool knightMoveRuleSeen = false;
 
-  /// Whether the remove ads IAP has been purchased
+  /// Master ad-removal switch. When true, all ads are suppressed: both Game
+  /// banner placements and the interstitial gate in GameCubit._onLevelComplete.
+  ///
+  /// Normally flipped by the Remove Ads IAP flow in IapService and Settings'
+  /// _PurchasesSection. For testing, load progress through ProgressRepository,
+  /// edit this field, then call ProgressRepository.saveProgress(...).
   bool adsRemoved = false;
 
   /// Total levels completed (for interstitial ad trigger — show every 2)

@@ -27,9 +27,7 @@ class TopBar extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {
-               // Placeholder for settings
-            },
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),

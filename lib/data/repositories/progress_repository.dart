@@ -11,7 +11,7 @@ class ProgressRepository {
   PlayerProgress getProgress() {
     final existing = _box.getAll();
     if (existing.isNotEmpty) return existing.first;
-    
+
     // New object MUST have id = 0 for ObjectBox to auto-assign
     final defaults = PlayerProgress(); // id defaults to 0
     _box.put(defaults);
@@ -28,7 +28,7 @@ class ProgressRepository {
   void completeLevel(int levelNumber, PuzzleTrack track) {
     final progress = getProgress();
     progress.levelsCompletedCount += 1;
-    
+
     if (track == PuzzleTrack.normal) {
       if (levelNumber >= progress.normalHighest) {
         progress.normalHighest = levelNumber + 1;
@@ -42,8 +42,32 @@ class ProgressRepository {
         progress.ultraHighest = levelNumber + 1;
       }
     }
-    
+
     saveProgress(progress);
+  }
+
+  bool isLevelUnlocked(int levelNumber, PuzzleTrack track) {
+    if (levelNumber < 1) return false;
+
+    final progress = getProgress();
+    return levelNumber <=
+        switch (track) {
+          PuzzleTrack.normal => progress.normalHighest,
+          PuzzleTrack.hard => progress.hardHighest,
+          PuzzleTrack.ultraHard => progress.ultraHighest,
+        };
+  }
+
+  bool isCurrentPlayableLevel(int levelNumber, PuzzleTrack track) {
+    if (levelNumber < 1 || levelNumber > maxLevelCount) return false;
+
+    final progress = getProgress();
+    return levelNumber ==
+        switch (track) {
+          PuzzleTrack.normal => progress.normalHighest,
+          PuzzleTrack.hard => progress.hardHighest,
+          PuzzleTrack.ultraHard => progress.ultraHighest,
+        };
   }
 
   /// Adds consumable items to inventory.
@@ -119,6 +143,12 @@ class ProgressRepository {
     saveProgress(progress);
   }
 
+  void resetTutorialSeen() {
+    final progress = getProgress();
+    progress.tutorialSeen = false;
+    saveProgress(progress);
+  }
+
   /// Records that a rule tutorial was shown at this level.
   void markRuleTutorialSeen(int levelNumber) {
     final progress = getProgress();
@@ -129,7 +159,7 @@ class ProgressRepository {
   /// Returns true if the rule tutorial for this level has been shown before.
   bool hasSeenRuleTutorial(int levelNumber) {
     final progress = getProgress();
-    return progress.lastRuleTutorialLevel == levelNumber;
+    return progress.lastRuleTutorialLevel >= levelNumber;
   }
 
   // ── Per-rule tutorial tracking ──────────────────────────

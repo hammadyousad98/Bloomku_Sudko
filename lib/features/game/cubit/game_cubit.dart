@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/utils/puzzle_generator.dart';
 import '../../../data/repositories/progress_repository.dart';
@@ -6,34 +7,47 @@ import 'game_state.dart';
 
 import '../../../services/ad_service.dart';
 
+GeneratedPuzzle _generatePuzzleIsolate(PuzzleConfig config) {
+  var puzzle = PuzzleGenerator.generate(config);
+  if (!puzzle.isValid) {
+    puzzle = PuzzleGenerator.generate(config);
+  }
+  return puzzle;
+}
+
 class GameCubit extends Cubit<GameState> {
   final ProgressRepository _progressRepo;
   final dynamic _adService; // AdService
   final dynamic _audioService; // AudioService
 
+  static const Duration _generationTimeout = Duration(seconds: 5);
+
   Timer? _timer;
+  int _generationToken = 0;
 
   GameCubit(this._progressRepo, this._adService, this._audioService)
-      : super(const GameState(
-          phase: GamePhase.loading,
-          puzzle: GeneratedPuzzle.invalid,
-          tileStates: [],
-          placedCount: 0,
-          targetCount: 0,
-          livesRemaining: 3,
-          maxLives: 3,
-          score: 0,
-          elapsed: Duration.zero,
-          hintCount: 0,
-          undoCount: 0,
-          bulbCount: 0,
-          extraLiveCount: 0,
-          activeTrack: PuzzleTrack.normal,
-          levelNumber: 1,
-          showDifficultyBar: false,
-          showUltraTab: false,
-          moveHistory: [],
-        ));
+      : super(
+          const GameState(
+            phase: GamePhase.loading,
+            puzzle: GeneratedPuzzle.invalid,
+            tileStates: [],
+            placedCount: 0,
+            targetCount: 0,
+            livesRemaining: 3,
+            maxLives: 3,
+            score: 0,
+            elapsed: Duration.zero,
+            hintCount: 0,
+            undoCount: 0,
+            bulbCount: 0,
+            extraLiveCount: 0,
+            activeTrack: PuzzleTrack.normal,
+            levelNumber: 1,
+            showDifficultyBar: false,
+            showUltraTab: false,
+            moveHistory: [],
+          ),
+        );
 
   @override
   Future<void> close() {
@@ -41,23 +55,82 @@ class GameCubit extends Cubit<GameState> {
     return super.close();
   }
 
-  void startLevel(int levelNumber, PuzzleTrack track) {
+  Future<void> startLevel(int levelNumber, PuzzleTrack track) async {
     _timer?.cancel();
-    
-    var config = PuzzleGenerator.configForLevel(levelNumber, track);
-    var puzzle = PuzzleGenerator.generate(config);
+    final token = ++_generationToken;
+
+    final config = PuzzleGenerator.configForLevel(levelNumber, track);
+    emit(
+      state.copyWith(
+        phase: GamePhase.loading,
+        activeTrack: track,
+        levelNumber: levelNumber,
+        showDifficultyBar: levelNumber >= 15,
+        showUltraTab: levelNumber > 30,
+        elapsed: Duration.zero,
+        moveHistory: [],
+        pendingRuleTutorials: const [],
+        showRuleTutorial: false,
+        errorTileIndex: null,
+        hintTileIndex: null,
+      ),
+    );
+
+    GeneratedPuzzle puzzle;
+    try {
+      puzzle = await compute(
+        _generatePuzzleIsolate,
+        config,
+      ).timeout(_generationTimeout);
+    } on TimeoutException {
+      if (!isClosed && token == _generationToken) {
+        emit(
+          state.copyWith(
+            phase: GamePhase.generationError,
+            statusMessage: "Couldn't generate this level. Please try again.",
+          ),
+        );
+      }
+      return;
+    } catch (_) {
+      if (!isClosed && token == _generationToken) {
+        emit(
+          state.copyWith(
+            phase: GamePhase.generationError,
+            statusMessage: "Couldn't generate this level. Please try again.",
+          ),
+        );
+      }
+      return;
+    }
+
+    if (isClosed || token != _generationToken) {
+      return;
+    }
+
     if (!puzzle.isValid) {
-      puzzle = PuzzleGenerator.generate(config);
+      emit(
+        state.copyWith(
+          phase: GamePhase.generationError,
+          statusMessage: "Couldn't generate this level. Please try again.",
+        ),
+      );
+      return;
     }
 
     final gridSize = puzzle.gridSize;
-    final List<TileState> states = List.filled(gridSize * gridSize, TileState.empty);
+    final List<TileState> states = List.filled(
+      gridSize * gridSize,
+      TileState.empty,
+    );
     for (int index in puzzle.lockedIndexes) {
       states[index] = TileState.lockedObject;
     }
 
     final progress = _progressRepo.getProgress();
-    final bool showRuleTutorial = !_progressRepo.hasSeenRuleTutorial(levelNumber);
+    final bool showRuleTutorial = !_progressRepo.hasSeenRuleTutorial(
+      levelNumber,
+    );
     if (showRuleTutorial) {
       _progressRepo.markRuleTutorialSeen(levelNumber);
     }
@@ -77,34 +150,38 @@ class GameCubit extends Cubit<GameState> {
       pending.add('knightMove');
     }
 
-    emit(state.copyWith(
-      phase: GamePhase.playing,
-      puzzle: puzzle,
-      tileStates: states,
-      placedCount: puzzle.lockedIndexes.length,
-      targetCount: gridSize,
-      livesRemaining: 3,
-      maxLives: 3,
-      elapsed: Duration.zero,
-      hintCount: progress.hints,
-      undoCount: progress.undos,
-      bulbCount: progress.bulbs,
-      extraLiveCount: progress.extraLives,
-      activeTrack: track,
-      levelNumber: levelNumber,
-      showDifficultyBar: levelNumber >= 16,
-      showUltraTab: levelNumber >= 31,
-      moveHistory: [],
-      statusMessage: null,
-      showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
-      pendingRuleTutorials: pending,
-      errorTileIndex: null,
-      hintTileIndex: null,
-    ));
+    emit(
+      state.copyWith(
+        phase: GamePhase.playing,
+        puzzle: puzzle,
+        tileStates: states,
+        placedCount: puzzle.lockedIndexes.length,
+        targetCount: gridSize,
+        livesRemaining: 3,
+        maxLives: 3,
+        elapsed: Duration.zero,
+        hintCount: progress.hints,
+        undoCount: progress.undos,
+        bulbCount: progress.bulbs,
+        extraLiveCount: progress.extraLives,
+        activeTrack: track,
+        levelNumber: levelNumber,
+        showDifficultyBar: levelNumber >= 15,
+        showUltraTab: levelNumber > 30,
+        moveHistory: [],
+        statusMessage: null,
+        showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
+        pendingRuleTutorials: pending,
+        errorTileIndex: null,
+        hintTileIndex: null,
+      ),
+    );
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.phase == GamePhase.playing) {
-        emit(state.copyWith(elapsed: state.elapsed + const Duration(seconds: 1)));
+        emit(
+          state.copyWith(elapsed: state.elapsed + const Duration(seconds: 1)),
+        );
       }
     });
   }
@@ -114,15 +191,17 @@ class GameCubit extends Cubit<GameState> {
   void dismissNextRuleTutorial() {
     final remaining = List<String>.from(state.pendingRuleTutorials);
     if (remaining.isNotEmpty) remaining.removeAt(0);
-    emit(state.copyWith(
-      pendingRuleTutorials: remaining,
-      showRuleTutorial: remaining.isNotEmpty,
-    ));
+    emit(
+      state.copyWith(
+        pendingRuleTutorials: remaining,
+        showRuleTutorial: remaining.isNotEmpty,
+      ),
+    );
   }
 
-  void onTileTap(int index) {
+  void onTileSingleTap(int index) {
     if (state.phase != GamePhase.playing) return;
-    
+
     final currentStates = List<TileState>.from(state.tileStates);
     final tile = currentStates[index];
 
@@ -132,29 +211,51 @@ class GameCubit extends Cubit<GameState> {
 
     if (tile == TileState.empty) {
       currentStates[index] = TileState.marker;
-      emit(state.copyWith(
+    } else if (tile == TileState.marker) {
+      currentStates[index] = TileState.empty;
+    } else {
+      return;
+    }
+
+    emit(
+      state.copyWith(
         tileStates: currentStates,
         errorTileIndex: null,
         hintTileIndex: null,
-      ));
-    } else if (tile == TileState.marker) {
+      ),
+    );
+  }
+
+  void onTileDoubleTap(int index) {
+    if (state.phase != GamePhase.playing) return;
+
+    final currentStates = List<TileState>.from(state.tileStates);
+    final tile = currentStates[index];
+
+    if (tile == TileState.lockedObject || tile == TileState.revealedMine) {
+      return;
+    }
+
+    if (tile == TileState.empty || tile == TileState.marker) {
       if (_canPlace(index, currentStates)) {
         currentStates[index] = TileState.object;
         final newHistory = List<int>.from(state.moveHistory)..add(index);
         final newPlacedCount = state.placedCount + 1;
-        
+
         try {
           _audioService.playTap();
         } catch (_) {}
 
-        emit(state.copyWith(
-          tileStates: currentStates,
-          placedCount: newPlacedCount,
-          moveHistory: newHistory,
-          errorTileIndex: null,
-          hintTileIndex: null,
-        ));
-        
+        emit(
+          state.copyWith(
+            tileStates: currentStates,
+            placedCount: newPlacedCount,
+            moveHistory: newHistory,
+            errorTileIndex: null,
+            hintTileIndex: null,
+          ),
+        );
+
         if (newPlacedCount == state.targetCount) {
           _onLevelComplete();
         }
@@ -165,11 +266,13 @@ class GameCubit extends Cubit<GameState> {
         } catch (_) {}
 
         final lives = state.livesRemaining - 1;
-        emit(state.copyWith(
-          livesRemaining: lives,
-          errorTileIndex: index,
-          hintTileIndex: null,
-        ));
+        emit(
+          state.copyWith(
+            livesRemaining: lives,
+            errorTileIndex: index,
+            hintTileIndex: null,
+          ),
+        );
 
         // Clear error highlight after short delay
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -185,19 +288,24 @@ class GameCubit extends Cubit<GameState> {
     } else if (tile == TileState.object) {
       currentStates[index] = TileState.empty;
       final newHistory = List<int>.from(state.moveHistory)..remove(index);
-      emit(state.copyWith(
-        tileStates: currentStates,
-        placedCount: state.placedCount - 1,
-        moveHistory: newHistory,
-        errorTileIndex: null,
-        hintTileIndex: null,
-      ));
+      emit(
+        state.copyWith(
+          tileStates: currentStates,
+          placedCount: state.placedCount - 1,
+          moveHistory: newHistory,
+          errorTileIndex: null,
+          hintTileIndex: null,
+        ),
+      );
     }
   }
 
   bool _canPlace(int index, List<TileState> states) {
     final puzzle = state.puzzle;
-    final config = PuzzleGenerator.configForLevel(state.levelNumber, state.activeTrack);
+    final config = PuzzleGenerator.configForLevel(
+      state.levelNumber,
+      state.activeTrack,
+    );
     final int gridSize = puzzle.gridSize;
     final int row = index ~/ gridSize;
     final int col = index % gridSize;
@@ -205,7 +313,8 @@ class GameCubit extends Cubit<GameState> {
 
     final placed = <int>[];
     for (int i = 0; i < states.length; i++) {
-      if (states[i] == TileState.object || states[i] == TileState.lockedObject) {
+      if (states[i] == TileState.object ||
+          states[i] == TileState.lockedObject) {
         placed.add(i);
       }
     }
@@ -220,17 +329,18 @@ class GameCubit extends Cubit<GameState> {
       if (puzzle.colorMap[pIndex] == myColor) return false;
 
       if (gridSize >= 4 && _isAdjacent(index, pIndex, gridSize)) return false;
-      
-      if (config.blockFullDiagonal && _sharesFullDiagonal(index, pIndex, gridSize)) {
+
+      if (config.blockFullDiagonal &&
+          _sharesFullDiagonal(index, pIndex, gridSize)) {
         return false;
       }
-      
+
       if (config.blockMinDistance) {
         if (_manhattanDistance(index, pIndex, gridSize) < config.minDistance) {
           return false;
         }
       }
-      
+
       if (config.blockKnightMove && _isKnightMove(index, pIndex, gridSize)) {
         return false;
       }
@@ -286,30 +396,27 @@ class GameCubit extends Cubit<GameState> {
       } catch (_) {}
     }
 
-    emit(state.copyWith(
-      phase: GamePhase.levelComplete,
-      score: finalScore,
-    ));
+    emit(state.copyWith(phase: GamePhase.levelComplete, score: finalScore));
   }
 
   void useHint() {
     if (state.hintCount > 0) {
       _progressRepo.useHint();
-      
+
       // Find a valid empty tile
       int? target;
       for (int i = 0; i < state.puzzle.solutionIndexes.length; i++) {
         int index = state.puzzle.solutionIndexes[i];
-        if (state.tileStates[index] == TileState.empty || state.tileStates[index] == TileState.marker) {
+        if (state.tileStates[index] == TileState.empty ||
+            state.tileStates[index] == TileState.marker) {
           target = index;
           break;
         }
       }
-      
-      emit(state.copyWith(
-        hintCount: state.hintCount - 1,
-        hintTileIndex: target,
-      ));
+
+      emit(
+        state.copyWith(hintCount: state.hintCount - 1, hintTileIndex: target),
+      );
 
       if (target != null) {
         Future.delayed(const Duration(milliseconds: 1500), () {
@@ -320,7 +427,10 @@ class GameCubit extends Cubit<GameState> {
       }
     } else {
       try {
-        AdService.showRewarded(RewardType.hint, onRewarded: onRewardedAdCompleted);
+        AdService.showRewarded(
+          RewardType.hint,
+          onRewarded: onRewardedAdCompleted,
+        );
       } catch (_) {}
     }
   }
@@ -328,32 +438,36 @@ class GameCubit extends Cubit<GameState> {
   void useBulb() {
     if (state.bulbCount > 0) {
       _progressRepo.useBulb();
-      
+
       final currentStates = List<TileState>.from(state.tileStates);
       final gridSize = state.puzzle.gridSize;
-      
+
       for (int row = 0; row < gridSize; row++) {
         // Find if this row is already solved
         bool solved = false;
         for (int col = 0; col < gridSize; col++) {
           int index = row * gridSize + col;
-          if (currentStates[index] == TileState.object || currentStates[index] == TileState.lockedObject) {
+          if (currentStates[index] == TileState.object ||
+              currentStates[index] == TileState.lockedObject) {
             solved = true;
             break;
           }
         }
-        
+
         if (!solved) {
           // Place the correct object for this row
           for (int index in state.puzzle.solutionIndexes) {
             if (index ~/ gridSize == row) {
-              currentStates[index] = TileState.lockedObject; // lock it so it can't be undone
+              currentStates[index] =
+                  TileState.lockedObject; // lock it so it can't be undone
               final newPlacedCount = state.placedCount + 1;
-              emit(state.copyWith(
-                bulbCount: state.bulbCount - 1,
-                tileStates: currentStates,
-                placedCount: newPlacedCount,
-              ));
+              emit(
+                state.copyWith(
+                  bulbCount: state.bulbCount - 1,
+                  tileStates: currentStates,
+                  placedCount: newPlacedCount,
+                ),
+              );
               if (newPlacedCount == state.targetCount) {
                 _onLevelComplete();
               }
@@ -364,7 +478,10 @@ class GameCubit extends Cubit<GameState> {
       }
     } else {
       try {
-        AdService.showRewarded(RewardType.bulb, onRewarded: onRewardedAdCompleted);
+        AdService.showRewarded(
+          RewardType.bulb,
+          onRewarded: onRewardedAdCompleted,
+        );
       } catch (_) {}
     }
   }
@@ -372,23 +489,28 @@ class GameCubit extends Cubit<GameState> {
   void undoLast() {
     if (state.moveHistory.isNotEmpty && state.undoCount > 0) {
       _progressRepo.useUndo();
-      
+
       final currentStates = List<TileState>.from(state.tileStates);
       final newHistory = List<int>.from(state.moveHistory);
       final indexToUndo = newHistory.removeLast();
-      
+
       if (currentStates[indexToUndo] == TileState.object) {
         currentStates[indexToUndo] = TileState.empty;
-        emit(state.copyWith(
-          undoCount: state.undoCount - 1,
-          tileStates: currentStates,
-          moveHistory: newHistory,
-          placedCount: state.placedCount - 1,
-        ));
+        emit(
+          state.copyWith(
+            undoCount: state.undoCount - 1,
+            tileStates: currentStates,
+            moveHistory: newHistory,
+            placedCount: state.placedCount - 1,
+          ),
+        );
       }
     } else if (state.undoCount <= 0) {
       try {
-        AdService.showRewarded(RewardType.undo, onRewarded: onRewardedAdCompleted);
+        AdService.showRewarded(
+          RewardType.undo,
+          onRewarded: onRewardedAdCompleted,
+        );
       } catch (_) {}
     }
   }
@@ -415,11 +537,13 @@ class GameCubit extends Cubit<GameState> {
       emit(state.copyWith(undoCount: state.undoCount + 1));
     } else if (type == RewardType.extraLife) {
       _progressRepo.addExtraLives(1);
-      emit(state.copyWith(
-        extraLiveCount: state.extraLiveCount + 1,
-        livesRemaining: 3,
-        phase: GamePhase.playing,
-      ));
+      emit(
+        state.copyWith(
+          extraLiveCount: state.extraLiveCount + 1,
+          livesRemaining: 3,
+          phase: GamePhase.playing,
+        ),
+      );
     }
   }
 

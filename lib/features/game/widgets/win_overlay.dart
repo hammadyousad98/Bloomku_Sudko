@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/puzzle_generator.dart';
 import '../cubit/game_state.dart';
 
 class WinOverlay extends StatelessWidget {
   final GameState state;
   final VoidCallback onNextLevel;
-  final VoidCallback onLevels;
+  final VoidCallback onMenu;
 
   const WinOverlay({
     super.key,
     required this.state,
     required this.onNextLevel,
-    required this.onLevels,
+    required this.onMenu,
   });
 
   @override
@@ -29,13 +29,13 @@ class WinOverlay extends StatelessWidget {
     }
 
     final minutes = state.elapsed.inMinutes;
-    final seconds =
-        (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds = (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     String trackName = 'Normal';
     if (state.activeTrack == PuzzleTrack.hard) trackName = 'Hard ×1.5';
     if (state.activeTrack == PuzzleTrack.ultraHard) trackName = 'Ultra ×2.5';
+    final completedAllLevels = state.levelNumber >= maxLevelCount;
 
     return Stack(
       children: [
@@ -68,8 +68,8 @@ class WinOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: theme.accentColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -106,16 +106,12 @@ class WinOverlay extends StatelessWidget {
                   children: List.generate(3, (index) {
                     final earned = index < stars;
                     return Icon(
-                      earned
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
+                      earned ? Icons.star_rounded : Icons.star_outline_rounded,
                       size: 48,
                       color: earned
                           ? Colors.amber
                           : theme.textPrimary.withValues(alpha: 0.3),
-                    )
-                        .animate(delay: (400 + index * 200).ms)
-                        .scale(
+                    ).animate(delay: (400 + index * 200).ms).scale(
                           begin: const Offset(0, 0),
                           end: const Offset(1, 1),
                           duration: 400.ms,
@@ -124,51 +120,65 @@ class WinOverlay extends StatelessWidget {
                   }),
                 ),
                 const SizedBox(height: 32),
+                if (completedAllLevels) ...[
+                  Text(
+                    "You've completed all levels!",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: theme.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: onLevels,
+                        onPressed: onMenu,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.cardColor,
                           foregroundColor: theme.textPrimary,
                           elevation: 0,
                           side: BorderSide(
                               color: theme.textPrimary.withValues(alpha: 0.2)),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: const Text(
-                          "Levels",
+                          "Menu",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onNextLevel,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.accentColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                    if (!completedAllLevels) ...[
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onNextLevel,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.accentColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            "Next Level",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          "Next Level",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ],

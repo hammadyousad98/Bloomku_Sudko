@@ -1,29 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/puzzle_generator.dart';
 
 class DifficultyBar extends StatelessWidget {
-  final int highestUnlockedLevel;
-  final String currentTrack;
-  final ValueChanged<String> onTrackSelected;
+  final bool showDifficultyBar;
+  final bool showUltraTab;
+  final PuzzleTrack currentTrack;
+  final ValueChanged<PuzzleTrack> onTrackSelected;
 
   const DifficultyBar({
     super.key,
-    required this.highestUnlockedLevel,
+    required this.showDifficultyBar,
+    required this.showUltraTab,
     required this.currentTrack,
     required this.onTrackSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (highestUnlockedLevel < 16) {
-      return const SizedBox.shrink(); // Hidden for levels 1-15
+    if (!showDifficultyBar) {
+      return const SizedBox.shrink();
     }
 
     final theme = context.bloomkuTheme;
-    final List<String> tabs = ['Normal', 'Hard'];
-    if (highestUnlockedLevel >= 31) {
-      tabs.add('Ultra');
-    }
+    final tabs = [
+      (label: 'Normal', track: PuzzleTrack.normal),
+      (label: 'Hard', track: PuzzleTrack.hard),
+      if (showUltraTab) (label: 'Ultra Hard', track: PuzzleTrack.ultraHard),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -34,10 +38,10 @@ class DifficultyBar extends StatelessWidget {
         ),
         child: Row(
           children: tabs.map((tab) {
-            final isActive = tab.toLowerCase() == currentTrack.toLowerCase();
+            final isActive = tab.track == currentTrack;
             return Expanded(
               child: GestureDetector(
-                onTap: () => onTrackSelected(tab.toLowerCase()),
+                onTap: () => onTrackSelected(tab.track),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -47,7 +51,7 @@ class DifficultyBar extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      tab,
+                      tab.label,
                       style: TextStyle(
                         color: isActive ? Colors.white : theme.textSecondary,
                         fontWeight: FontWeight.bold,

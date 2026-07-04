@@ -49,7 +49,10 @@ class AdService {
   }
 
   /// Shows a rewarded ad. Calls onRewarded with the RewardType when complete.
-  static void showRewarded(RewardType type, {required Function(RewardType) onRewarded}) {
+  static void showRewarded(
+    RewardType type, {
+    required Function(RewardType) onRewarded,
+  }) {
     RewardedAd.load(
       adUnitId: AdConstants.rewardedUnitId,
       request: const AdRequest(),
@@ -68,7 +71,7 @@ class AdService {
           });
         },
         onAdFailedToLoad: (error) {
-          // Could call onRewarded here if you want to give the reward anyway on failure, 
+          // Could call onRewarded here if you want to give the reward anyway on failure,
           // or handle it with an error callback.
         },
       ),
@@ -76,10 +79,13 @@ class AdService {
   }
 
   /// Creates and returns a BannerAd (caller must show it in a widget).
-  static BannerAd createBanner({BannerAdListener? listener}) {
+  static BannerAd createBanner({
+    BannerAdListener? listener,
+    AdSize size = AdSize.banner,
+  }) {
     return BannerAd(
       adUnitId: AdConstants.bannerUnitId,
-      size: AdSize.banner,
+      size: size,
       request: const AdRequest(),
       listener: listener ?? const BannerAdListener(),
     );

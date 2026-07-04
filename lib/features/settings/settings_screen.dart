@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_cubit.dart';
@@ -22,7 +23,8 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SettingsCubit(GetIt.I<SettingsRepository>())..loadSettings(),
+      create: (_) =>
+          SettingsCubit(GetIt.I<SettingsRepository>())..loadSettings(),
       child: const _SettingsView(),
     );
   }
@@ -93,7 +95,7 @@ class _SettingsAppBar extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
+            onTap: () => context.pop(),
             child: Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
@@ -107,8 +109,11 @@ class _SettingsAppBar extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(Icons.arrow_back_ios_new,
-                  color: theme.textPrimary, size: 18),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                color: theme.textPrimary,
+                size: 18,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -331,7 +336,7 @@ class _SwitchRow extends StatelessWidget {
           const Spacer(),
           Switch.adaptive(
             value: value,
-            activeColor: theme.accentColor,
+            activeThumbColor: theme.accentColor,
             onChanged: onChanged,
           ),
         ],
@@ -427,13 +432,13 @@ class _ThemeCard extends StatelessWidget {
                     color: themeData.accentColor.withValues(alpha: 0.4),
                     blurRadius: 12,
                     spreadRadius: 1,
-                  )
+                  ),
                 ]
               : [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 6,
-                  )
+                  ),
                 ],
         ),
         child: Stack(
@@ -586,11 +591,11 @@ class _TapRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon,
-                size: 20,
-                color: isSubtle
-                    ? theme.textSecondary
-                    : theme.accentColor),
+            Icon(
+              icon,
+              size: 20,
+              color: isSubtle ? theme.textSecondary : theme.accentColor,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -613,9 +618,11 @@ class _TapRow extends StatelessWidget {
               ),
               const SizedBox(width: 4),
             ],
-            Icon(Icons.chevron_right_rounded,
-                size: 20,
-                color: theme.textSecondary.withValues(alpha: 0.5)),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: theme.textSecondary.withValues(alpha: 0.5),
+            ),
           ],
         ),
       ),
@@ -680,12 +687,23 @@ class _InfoSection extends StatelessWidget {
             theme: theme,
           ),
           _Divider(),
+          _TapRow(
+            icon: Icons.replay_rounded,
+            label: 'Replay Tutorial',
+            trailing: null,
+            onTap: () => _replayTutorial(context),
+            theme: theme,
+          ),
+          _Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 20, color: theme.textSecondary),
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: theme.textSecondary,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   'Version',
@@ -731,8 +749,15 @@ class _InfoSection extends StatelessWidget {
     );
   }
 
+  void _replayTutorial(BuildContext context) {
+    GetIt.I<ProgressRepository>().resetTutorialSeen();
+    context.push('/tutorial');
+  }
+
   Future<void> _launchPrivacyPolicy() async {
-    final uri = Uri.parse('https://example.com/privacy'); // replace with real URL
+    final uri = Uri.parse(
+      'https://example.com/privacy',
+    ); // replace with real URL
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -800,22 +825,21 @@ class _HowToPlaySheet extends StatelessWidget {
                   _RuleItem(
                     emoji: '↔️',
                     title: 'No adjacency',
-                    description:
-                        'Objects may not touch — not even diagonally.',
+                    description: 'Objects may not touch — not even diagonally.',
                     theme: theme,
                   ),
                   _RuleItem(
                     emoji: '🔥',
                     title: 'Hard & Ultra Hard',
                     description:
-                        'Extra rules unlock at level 16: full-diagonal blocking and knight-move restrictions.',
+                        'Hard unlocks at level 15. Ultra Hard unlocks at level 31 with extra rule twists.',
                     theme: theme,
                   ),
                   _RuleItem(
                     emoji: '💡',
-                    title: 'Tap to mark',
+                    title: 'Tap and double-tap',
                     description:
-                        'Tap once to add an × marker, tap again to place your object. Wrong placements cost a life.',
+                        'Tap once to toggle an × marker. Double-tap to place or remove your object. Wrong placements cost a life.',
                     theme: theme,
                   ),
                 ],

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_cubit.dart';
@@ -12,8 +13,6 @@ import '../../widgets/common/themed_icon.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/reward_repository.dart';
 import 'main_menu_cubit.dart';
-
-import '../daily_challenges/daily_challenges_screen.dart';
 
 import '../../services/audio_service.dart';
 
@@ -34,7 +33,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => MainMenuCubit(sl<ProgressRepository>(), sl<RewardRepository>()),
+      create: (_) =>
+          MainMenuCubit(sl<ProgressRepository>(), sl<RewardRepository>()),
       child: const _MainMenuScreenView(),
     );
   }
@@ -61,13 +61,16 @@ class _MainMenuScreenView extends StatelessWidget {
             children: [
               // TOP ROW
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _TopIconButton(
                       icon: Icons.settings,
-                      onTap: () {},
+                      onTap: () => context.push('/settings'),
                     ),
                     _TopIconButton(
                       icon: Icons.palette,
@@ -85,13 +88,20 @@ class _MainMenuScreenView extends StatelessWidget {
                 children: [
                   const ThemedIcon(size: 120)
                       .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .moveY(begin: 0, end: -8, duration: const Duration(milliseconds: 2500), curve: Curves.easeInOut)
+                      .moveY(
+                        begin: 0,
+                        end: -8,
+                        duration: const Duration(milliseconds: 2500),
+                        curve: Curves.easeInOut,
+                      )
                       .animate()
                       .fadeIn(duration: const Duration(milliseconds: 400))
-                      .slideY(begin: 0.05, end: 0, duration: const Duration(milliseconds: 400)),
-                  
+                      .slideY(
+                        begin: 0.05,
+                        end: 0,
+                        duration: const Duration(milliseconds: 400),
+                      ),
                   const SizedBox(height: 16),
-                  
                   Text(
                     'Bloomku',
                     style: TextStyle(
@@ -103,10 +113,12 @@ class _MainMenuScreenView extends StatelessWidget {
                   )
                       .animate(delay: const Duration(milliseconds: 200))
                       .fadeIn(duration: const Duration(milliseconds: 300))
-                      .slideY(begin: 0.05, end: 0, duration: const Duration(milliseconds: 300)),
-                  
+                      .slideY(
+                        begin: 0.05,
+                        end: 0,
+                        duration: const Duration(milliseconds: 300),
+                      ),
                   const SizedBox(height: 4),
-                  
                   Text(
                     'Mindful Puzzle',
                     style: TextStyle(
@@ -118,7 +130,11 @@ class _MainMenuScreenView extends StatelessWidget {
                   )
                       .animate(delay: const Duration(milliseconds: 200))
                       .fadeIn(duration: const Duration(milliseconds: 300))
-                      .slideY(begin: 0.05, end: 0, duration: const Duration(milliseconds: 300)),
+                      .slideY(
+                        begin: 0.05,
+                        end: 0,
+                        duration: const Duration(milliseconds: 300),
+                      ),
                 ],
               ),
 
@@ -133,34 +149,32 @@ class _MainMenuScreenView extends StatelessWidget {
                       label: "Play",
                       backgroundColor: theme.accentColor,
                       textColor: Colors.white,
-                      onTap: () => context.go('/levels'),
+                      onTap: () => _playCurrentLevel(context),
                     )
                         .animate(delay: const Duration(milliseconds: 400))
                         .fadeIn(duration: const Duration(milliseconds: 300))
-                        .slideY(begin: 0.05, end: 0, duration: const Duration(milliseconds: 300)),
-                    
+                        .slideY(
+                          begin: 0.05,
+                          end: 0,
+                          duration: const Duration(milliseconds: 300),
+                        ),
                     const SizedBox(height: 16),
-                    
                     _PrimaryButton(
                       label: "Daily Challenges 🏆",
                       backgroundColor: theme.cardColor,
                       textColor: theme.accentColor,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const DailyChallengesScreen()),
-                      ),
+                      onTap: () => context.push('/challenges'),
                     )
                         .animate(delay: const Duration(milliseconds: 600))
                         .fadeIn(duration: const Duration(milliseconds: 300)),
-                    
                     const SizedBox(height: 16),
-                    
                     BlocBuilder<MainMenuCubit, MainMenuState>(
                       builder: (context, state) {
                         return _GradientButton(
-                          label: state.streakDay > 0 
-                              ? "🔥 Day ${state.streakDay}" 
+                          label: state.streakDay > 0
+                              ? "🔥 Day ${state.streakDay}"
                               : "Start your streak!",
-                          onTap: () => context.go('/rewards'),
+                          onTap: () => context.push('/rewards'),
                         );
                       },
                     )
@@ -181,7 +195,10 @@ class _MainMenuScreenView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _InventoryChip(icon: '💡', count: state.hints),
-                        _InventoryChip(icon: '❤️', count: state.extraLives),
+                        _InventoryChip(
+                          icon: '❤️',
+                          count: state.extraLives,
+                        ),
                         _InventoryChip(icon: '↩', count: state.undos),
                         _InventoryChip(icon: '💡', count: state.bulbs),
                       ],
@@ -198,67 +215,18 @@ class _MainMenuScreenView extends StatelessWidget {
     );
   }
 
-  void _showComingSoonBottomSheet(BuildContext context) {
-    final theme = context.bloomkuTheme;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: theme.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.textSecondary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "Daily Challenges",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: theme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Coming soon! Check back for exciting daily puzzles.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: theme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.accentColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
-                  "Close",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+  void _playCurrentLevel(BuildContext context) {
+    final progress = sl<ProgressRepository>().getProgress();
+    if (progress.normalHighest > maxLevelCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You completed every level!')),
+      );
+      return;
+    }
+
+    context.push(
+      '/game',
+      extra: {'level': progress.normalHighest, 'track': 'normal'},
     );
   }
 
@@ -347,7 +315,10 @@ class _GradientButton extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFF9800), Color(0xFFFFEB3B)], // warm orange -> yellow
+          colors: [
+            Color(0xFFFF9800),
+            Color(0xFFFFEB3B),
+          ], // warm orange -> yellow
         ),
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
@@ -355,8 +326,8 @@ class _GradientButton extends StatelessWidget {
             color: const Color(0xFFFF9800).withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
-          )
-        ]
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -404,7 +375,10 @@ class _InventoryChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: () {},
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -472,7 +446,10 @@ class ThemeSelectorSheet extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [themeData.backgroundTop, themeData.backgroundBottom],
+                        colors: [
+                          themeData.backgroundTop,
+                          themeData.backgroundBottom,
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: isActive
@@ -483,7 +460,7 @@ class ThemeSelectorSheet extends StatelessWidget {
                           color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ],
                     ),
                     child: Stack(
@@ -514,7 +491,11 @@ class ThemeSelectorSheet extends StatelessWidget {
                                 color: themeData.accentColor,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check, color: Colors.white, size: 16),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
                           ),
                       ],
@@ -538,13 +519,10 @@ class _PreviewIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset(
-      themeData.objectIconPath,
+      themeData.objectIconPaths.first,
       width: 48,
       height: 48,
-      colorFilter: ColorFilter.mode(
-        themeData.accentColor,
-        BlendMode.srcIn,
-      ),
+      colorFilter: ColorFilter.mode(themeData.accentColor, BlendMode.srcIn),
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/audio_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import '../../core/constants/ad_constants.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../core/utils/puzzle_generator.dart';
@@ -23,11 +26,7 @@ class GameScreen extends StatefulWidget {
   final int level;
   final String track;
 
-  const GameScreen({
-    super.key,
-    required this.level,
-    required this.track,
-  });
+  const GameScreen({super.key, required this.level, required this.track});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -59,26 +58,24 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
-  void _goToLevels() {
-    Navigator.of(context).pop();
+  void _goToMenu() {
+    context.go('/menu');
   }
 
   void _startNextLevel() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) =>
-            GameScreen(level: widget.level + 1, track: widget.track),
-      ),
-    );
+    final nextLevel = _cubit.state.levelNumber + 1;
+    if (nextLevel > maxLevelCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You completed every level!')),
+      );
+      return;
+    }
+
+    _cubit.startLevel(nextLevel, _cubit.state.activeTrack);
   }
 
   void _restartLevel() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) =>
-            GameScreen(level: widget.level, track: widget.track),
-      ),
-    );
+    _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack);
   }
 
   void _showPendingTutorials(GameState state) {
@@ -87,7 +84,9 @@ class _GameScreenState extends State<GameScreen> {
 
     final ruleKey = state.pendingRuleTutorials.first;
     final config = PuzzleGenerator.configForLevel(
-        state.levelNumber, state.activeTrack);
+      state.levelNumber,
+      state.activeTrack,
+    );
 
     TutorialSlide slide;
     switch (ruleKey) {
@@ -135,18 +134,36 @@ class _GameScreenState extends State<GameScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
+              if (state.phase == GamePhase.generationError) {
+                return _GenerationErrorView(
+                  message: state.statusMessage ??
+                      "Couldn't generate this level. Please try again.",
+                  onRetry: () => _cubit.startLevel(
+                    state.levelNumber,
+                    state.activeTrack,
+                  ),
+                  onMenu: _goToMenu,
+                );
+              }
+
               final minutes = state.elapsed.inMinutes;
-              final seconds =
-                  (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+              final seconds = (state.elapsed.inSeconds % 60).toString().padLeft(
+                    2,
+                    '0',
+                  );
 
               final config = PuzzleGenerator.configForLevel(
-                  state.levelNumber, state.activeTrack);
+                state.levelNumber,
+                state.activeTrack,
+              );
 
               final mainContent = Column(
                 children: [
                   TopBar(
-                      level: state.levelNumber,
-                      gridSize: state.puzzle.gridSize),
+                    level: state.levelNumber,
+                    gridSize: state.puzzle.gridSize,
+                  ),
+                  if (AdConstants.showTopBannerAd) const BannerAdWidget(),
                   ProgressRow(
                     placedCount: state.placedCount,
                     totalCount: state.targetCount,
@@ -161,30 +178,16 @@ class _GameScreenState extends State<GameScreen> {
                     blockKnightMove: config.blockKnightMove,
                   ),
                   DifficultyBar(
-                    highestUnlockedLevel: 16,
-                    currentTrack: state.activeTrack.name,
-                    onTrackSelected: (newTrack) {
-                      final pTrack = newTrack.toLowerCase() == 'hard'
-                          ? PuzzleTrack.hard
-                          : (newTrack.toLowerCase() == 'ultra'
-                              ? PuzzleTrack.ultraHard
-                              : PuzzleTrack.normal);
-                      _cubit.switchTrack(pTrack);
-                    },
+                    showDifficultyBar: state.showDifficultyBar,
+                    showUltraTab: state.showUltraTab,
+                    currentTrack: state.activeTrack,
+                    onTrackSelected: _cubit.switchTrack,
                   ),
                   Expanded(
                     child: Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: PuzzleGrid(
-                          gridSize: state.puzzle.gridSize,
-                          states: state.tileStates,
-                          colorMap: state.puzzle.colorMap
-                              .map((c) =>
-                                  theme.tileColors[c % theme.tileColors.length])
-                              .toList(),
-                          onTileTap: (index) => _cubit.onTileTap(index),
-                        ),
+                        child: _buildPuzzleGrid(state, theme),
                       ),
                     ),
                   ),
@@ -196,7 +199,7 @@ class _GameScreenState extends State<GameScreen> {
                     onBulbTap: () => _cubit.useBulb(),
                     onUndoTap: () => _cubit.undoLast(),
                   ),
-                  const BannerAdWidget(),
+                  if (AdConstants.showBottomBannerAd) const BannerAdWidget(),
                 ],
               );
 
@@ -210,7 +213,7 @@ class _GameScreenState extends State<GameScreen> {
                       child: WinOverlay(
                         state: state,
                         onNextLevel: _startNextLevel,
-                        onLevels: _goToLevels,
+                        onMenu: _goToMenu,
                       ),
                     )
                   else if (state.phase == GamePhase.gameOver ||
@@ -220,13 +223,90 @@ class _GameScreenState extends State<GameScreen> {
                         state: state,
                         onGiveUp: () => _cubit.giveUp(),
                         onTryAgain: _restartLevel,
-                        onLevels: _goToLevels,
+                        onMenu: _goToMenu,
                       ),
                     ),
                 ],
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPuzzleGrid(GameState state, dynamic theme) {
+    final grid = PuzzleGrid(
+      gridSize: state.puzzle.gridSize,
+      states: state.tileStates,
+      colorRegions: state.puzzle.colorMap,
+      colorMap: List<Color>.from(
+        state.puzzle.colorMap.map(
+          (c) => theme.tileColors[c % theme.tileColors.length],
+        ),
+      ),
+      errorTileIndex: state.errorTileIndex,
+      hintTileIndex: state.hintTileIndex,
+      onTileSingleTap: (index) => _cubit.onTileSingleTap(index),
+      onTileDoubleTap: (index) => _cubit.onTileDoubleTap(index),
+    );
+
+    if (state.puzzle.gridSize >= 10) {
+      return RepaintBoundary(child: grid);
+    }
+
+    return grid;
+  }
+}
+
+class _GenerationErrorView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  final VoidCallback onMenu;
+
+  const _GenerationErrorView({
+    required this.message,
+    required this.onRetry,
+    required this.onMenu,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.bloomkuTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.refresh_rounded, size: 48, color: theme.accentColor),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: onMenu,
+                  child: const Text('Menu'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -9,14 +9,14 @@ class GameOverOverlay extends StatelessWidget {
   final GameState state;
   final VoidCallback onGiveUp;
   final VoidCallback onTryAgain;
-  final VoidCallback onLevels;
+  final VoidCallback onMenu;
 
   const GameOverOverlay({
     super.key,
     required this.state,
     required this.onGiveUp,
     required this.onTryAgain,
-    required this.onLevels,
+    required this.onMenu,
   });
 
   @override
@@ -117,8 +117,7 @@ class GameOverOverlay extends StatelessWidget {
 
   Widget _buildGameOverCard(BuildContext context, AppThemeData theme) {
     final minutes = state.elapsed.inMinutes;
-    final seconds =
-        (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds = (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     return Column(
@@ -157,7 +156,7 @@ class GameOverOverlay extends StatelessWidget {
           children: [
             Expanded(
               child: ElevatedButton(
-                onPressed: onLevels,
+                onPressed: onMenu,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.cardColor,
                   foregroundColor: theme.textPrimary,
@@ -170,7 +169,7 @@ class GameOverOverlay extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  "Levels",
+                  "Menu",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),

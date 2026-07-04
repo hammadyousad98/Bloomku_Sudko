@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 
 class DailyChallengesScreen extends StatelessWidget {
@@ -23,19 +24,26 @@ class DailyChallengesScreen extends StatelessWidget {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   children: [
                     Material(
                       color: theme.textPrimary.withValues(alpha: 0.05),
                       shape: const CircleBorder(),
                       child: InkWell(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () => context.pop(),
                         customBorder: const CircleBorder(),
                         child: SizedBox(
                           width: 44,
                           height: 44,
-                          child: Icon(Icons.arrow_back_ios_new, color: theme.textPrimary, size: 20),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            color: theme.textPrimary,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -61,7 +69,10 @@ class DailyChallengesScreen extends StatelessWidget {
                 child: Container(
                   width: 300,
                   height: 400,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.cardColor,
                     borderRadius: BorderRadius.circular(24),
@@ -77,15 +88,20 @@ class DailyChallengesScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Trophy Emoji with bounce animation
-                      const Text(
-                        '🏆',
-                        style: TextStyle(fontSize: 120),
-                      )
-                          .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                          .moveY(begin: 0, end: -6, duration: 1.seconds, curve: Curves.easeInOutSine),
-                      
+                      const Text('🏆', style: TextStyle(fontSize: 120))
+                          .animate(
+                            onPlay: (controller) =>
+                                controller.repeat(reverse: true),
+                          )
+                          .moveY(
+                            begin: 0,
+                            end: -6,
+                            duration: 1.seconds,
+                            curve: Curves.easeInOutSine,
+                          ),
+
                       const SizedBox(height: 16),
-                      
+
                       Text(
                         'Coming Soon!',
                         style: TextStyle(
@@ -94,9 +110,9 @@ class DailyChallengesScreen extends StatelessWidget {
                           color: theme.textPrimary,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 12),
-                      
+
                       Text(
                         'Daily challenges are on their way. A new puzzle every day, for every player, at the same time.',
                         textAlign: TextAlign.center,
@@ -106,9 +122,9 @@ class DailyChallengesScreen extends StatelessWidget {
                           color: theme.textSecondary,
                         ),
                       ),
-                      
+
                       const Spacer(),
-                      
+
                       // Notify Me Button
                       SizedBox(
                         width: double.infinity,
@@ -145,9 +161,9 @@ class DailyChallengesScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       Text(
                         'Available in a future update',
                         style: TextStyle(

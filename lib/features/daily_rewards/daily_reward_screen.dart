@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/daily_reward_state.dart';
 import '../../data/repositories/progress_repository.dart';
@@ -61,9 +62,7 @@ class _DailyRewardView extends StatelessWidget {
                 return Column(
                   children: [
                     _buildAppBar(context, theme),
-                    Expanded(
-                      child: _buildBody(context, theme, state),
-                    ),
+                    Expanded(child: _buildBody(context, theme, state)),
                   ],
                 );
               },
@@ -80,15 +79,18 @@ class _DailyRewardView extends StatelessWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () => context.pop(),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: theme.cardColor.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.arrow_back_ios_new,
-                  color: theme.textPrimary, size: 20),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                color: theme.textPrimary,
+                size: 20,
+              ),
             ),
           ),
           const Expanded(
@@ -109,7 +111,10 @@ class _DailyRewardView extends StatelessWidget {
   }
 
   Widget _buildBody(
-      BuildContext context, dynamic theme, DailyRewardCubitState state) {
+    BuildContext context,
+    dynamic theme,
+    DailyRewardCubitState state,
+  ) {
     if (state is DailyRewardLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -152,7 +157,7 @@ class _DailyRewardView extends StatelessWidget {
           const SizedBox(height: 32),
           // Post-claim celebration
           if (justClaimed && claimedReward != null) ...[
-            _ClaimCelebration(reward: claimedReward!)
+            _ClaimCelebration(reward: claimedReward)
                 .animate()
                 .fadeIn(duration: 400.ms)
                 .slideY(begin: 0.2, end: 0, duration: 400.ms),
@@ -163,8 +168,7 @@ class _DailyRewardView extends StatelessWidget {
             canClaim: canClaim,
             justClaimed: justClaimed,
             streakDay: streakDay,
-            onClaim: () =>
-                context.read<DailyRewardCubit>().claimReward(),
+            onClaim: () => context.read<DailyRewardCubit>().claimReward(),
           ),
           const SizedBox(height: 16),
           // Tomorrow preview
@@ -230,9 +234,7 @@ class _StreakBadge extends StatelessWidget {
             ),
         ],
       ),
-    )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .scale(
+    ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
           begin: const Offset(1, 1),
           end: const Offset(1.04, 1.04),
           duration: 1200.ms,
@@ -269,12 +271,11 @@ class _WeeklyCalendar extends StatelessWidget {
           final dayNumber = i + 1;
           final reward = kDailyRewards[i];
           final isPast = dayNumber < currentStreakDay;
-          final isToday = dayNumber == currentStreakDay + (claimedToday ? 0 : 0);
-          // isToday = next day to claim, which is currentStreakDay+1 when !claimed
-          // or currentStreakDay when just claimed
-          final isTodayClaimable = !claimedToday && dayNumber == currentStreakDay + 1;
+          final isTodayClaimable =
+              !claimedToday && dayNumber == currentStreakDay + 1;
           final isTodayClaimed = claimedToday && dayNumber == currentStreakDay;
-          final isFuture = dayNumber > currentStreakDay + (claimedToday ? 0 : 1);
+          final isFuture =
+              dayNumber > currentStreakDay + (claimedToday ? 0 : 1);
 
           return _DayCard(
             dayNumber: dayNumber,
@@ -348,7 +349,7 @@ class _DayCard extends StatelessWidget {
                     color: theme.accentColor.withValues(alpha: 0.35),
                     blurRadius: 12,
                     spreadRadius: 2,
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -382,9 +383,10 @@ class _DayCard extends StatelessWidget {
     );
 
     if (isClaimable) {
-      card = card
-          .animate(onPlay: (c) => c.repeat(reverse: true))
-          .shimmer(duration: 1400.ms, color: theme.accentColor.withValues(alpha: 0.25));
+      card = card.animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(
+            duration: 1400.ms,
+            color: theme.accentColor.withValues(alpha: 0.25),
+          );
     }
 
     return card;
@@ -448,7 +450,7 @@ class _ClaimButton extends StatelessWidget {
                     color: theme.accentColor.withValues(alpha: 0.45),
                     blurRadius: 18,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -490,19 +492,25 @@ class _TomorrowPreview extends StatelessWidget {
     final tomorrow = kDailyRewards[tomorrowDay - 1];
 
     final parts = <String>[];
-    if (tomorrow.hints > 0) parts.add('💡 ${tomorrow.hints} Hint${tomorrow.hints > 1 ? "s" : ""}');
-    if (tomorrow.extraLives > 0) parts.add('❤️ ${tomorrow.extraLives} Extra Life');
-    if (tomorrow.undos > 0) parts.add('↩️ ${tomorrow.undos} Undo${tomorrow.undos > 1 ? "s" : ""}');
-    if (tomorrow.bulbs > 0) parts.add('🌟 ${tomorrow.bulbs} Bulb${tomorrow.bulbs > 1 ? "s" : ""}');
+    if (tomorrow.hints > 0) {
+      parts.add('💡 ${tomorrow.hints} Hint${tomorrow.hints > 1 ? "s" : ""}');
+    }
+    if (tomorrow.extraLives > 0) {
+      parts.add('❤️ ${tomorrow.extraLives} Extra Life');
+    }
+    if (tomorrow.undos > 0) {
+      parts.add('↩️ ${tomorrow.undos} Undo${tomorrow.undos > 1 ? "s" : ""}');
+    }
+    if (tomorrow.bulbs > 0) {
+      parts.add('🌟 ${tomorrow.bulbs} Bulb${tomorrow.bulbs > 1 ? "s" : ""}');
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.panelColor.withValues(alpha: 0.6),
-        ),
+        border: Border.all(color: theme.panelColor.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,7 +527,16 @@ class _TomorrowPreview extends StatelessWidget {
           Wrap(
             spacing: 10,
             children: parts
-                .map((p) => Text(p, style: TextStyle(fontSize: 14, color: theme.textPrimary, fontWeight: FontWeight.w700)))
+                .map(
+                  (p) => Text(
+                    p,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -540,10 +557,18 @@ class _ClaimCelebration extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.bloomkuTheme;
     final parts = <String>[];
-    if (reward.hints > 0) parts.add('💡 +${reward.hints} Hint${reward.hints > 1 ? "s" : ""}');
-    if (reward.extraLives > 0) parts.add('❤️ +${reward.extraLives} Extra Life');
-    if (reward.undos > 0) parts.add('↩️ +${reward.undos} Undo${reward.undos > 1 ? "s" : ""}');
-    if (reward.bulbs > 0) parts.add('🌟 +${reward.bulbs} Bulb${reward.bulbs > 1 ? "s" : ""}');
+    if (reward.hints > 0) {
+      parts.add('💡 +${reward.hints} Hint${reward.hints > 1 ? "s" : ""}');
+    }
+    if (reward.extraLives > 0) {
+      parts.add('❤️ +${reward.extraLives} Extra Life');
+    }
+    if (reward.undos > 0) {
+      parts.add('↩️ +${reward.undos} Undo${reward.undos > 1 ? "s" : ""}');
+    }
+    if (reward.bulbs > 0) {
+      parts.add('🌟 +${reward.bulbs} Bulb${reward.bulbs > 1 ? "s" : ""}');
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -555,13 +580,20 @@ class _ClaimCelebration extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.shade400.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: Colors.green.shade400.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
       child: Column(
         children: [
           const Text('🎉', style: TextStyle(fontSize: 40))
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 600.ms),
+              .scale(
+                begin: const Offset(0.9, 0.9),
+                end: const Offset(1.1, 1.1),
+                duration: 600.ms,
+              ),
           const SizedBox(height: 8),
           Text(
             'Reward Claimed!',
@@ -616,8 +648,10 @@ class _ParticlePainter extends CustomPainter {
     return Offset(rng.nextDouble(), rng.nextDouble());
   });
 
-  static final _sizes =
-      List.generate(28, (i) => math.Random(i * 7 + 3).nextDouble() * 5 + 2);
+  static final _sizes = List.generate(
+    28,
+    (i) => math.Random(i * 7 + 3).nextDouble() * 5 + 2,
+  );
 
   @override
   void paint(Canvas canvas, Size size) {

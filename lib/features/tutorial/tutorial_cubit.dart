@@ -74,31 +74,28 @@ class TutorialCubit extends Cubit<TutorialState> {
     return const [
       TutorialSlide(
         title: "Welcome to Bloomku",
-        body: "A mindful logic puzzle. Place one [objectName] in every row, column, and color region.",
+        body:
+            "A mindful logic puzzle. Place one [objectName] in every row, column, and color region.",
       ),
       TutorialSlide(
-        title: "Tap once — mark ×",
-        body: "Tap a cell once to mark it with × — this cell cannot hold a [objectName].",
+        title: "Tap once to mark",
+        body:
+            "Tap a cell once to mark it with ×. Tap the marker again to unmark it.",
       ),
       TutorialSlide(
-        title: "Tap twice — place",
-        body: "Tap a marked cell again to place your [objectName] there.",
+        title: "Double-tap to place",
+        body:
+            "Double-tap any empty or marked cell to place your [objectName] there. Double-tap a placed [objectName] to remove it.",
       ),
       TutorialSlide(
-        title: "Tap again — clear",
-        body: "A third tap clears the cell completely.",
+        title: "Rows, columns, regions",
+        body:
+            "Every row, every column, and every color region must contain exactly one [objectName].",
       ),
       TutorialSlide(
-        title: "One per row & column",
-        body: "Every row and every column must contain exactly one [objectName].",
-      ),
-      TutorialSlide(
-        title: "One per color region",
-        body: "Each colored region on the grid must also contain exactly one [objectName].",
-      ),
-      TutorialSlide(
-        title: "No touching!",
-        body: "A [objectName] blocks all 8 cells directly surrounding it. Nothing can be placed there.",
+        title: "No touching",
+        body:
+            "No [objectName] can touch another, even diagonally. Leave every surrounding cell clear.",
       ),
     ];
   }
@@ -107,21 +104,24 @@ class TutorialCubit extends Cubit<TutorialState> {
   static TutorialSlide getFullDiagonalRule() {
     return const TutorialSlide(
       title: "New Rule Unlocked!",
-      body: "No two [objectName]s may share any diagonal line — not just neighbors, but across the entire board.",
+      body:
+          "No two [objectName]s may share any diagonal line — not just neighbors, but across the entire board.",
     );
   }
 
   static TutorialSlide getMinDistanceRule(int distance) {
     return TutorialSlide(
       title: "Spread Them Out!",
-      body: "On Ultra Hard, every [objectName] must be at least $distance cells from every other — measured in steps across rows and columns combined.",
+      body:
+          "On Ultra Hard, every [objectName] must be at least $distance cells from every other — measured in steps across rows and columns combined.",
     );
   }
 
   static TutorialSlide getKnightsMoveRule() {
     return const TutorialSlide(
       title: "The Knight Awakens!",
-      body: "From level 80, each [objectName] also blocks the cells a chess knight can jump to. The L-shaped move adds a surprising new layer to every puzzle.",
+      body:
+          "From level 80, each [objectName] also blocks the cells a chess knight can jump to. The L-shaped move adds a surprising new layer to every puzzle.",
     );
   }
 }
