@@ -1,0 +1,165 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:695088743465370516",
+      "lastPropertyId": "4:1608846059587771486",
+      "name": "DailyRewardState",
+      "properties": [
+        {
+          "id": "1:8406010299724138512",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3313531032877894796",
+          "name": "currentStreakDay",
+          "type": 6
+        },
+        {
+          "id": "3:2462351603623946138",
+          "name": "lastClaimDate",
+          "type": 9
+        },
+        {
+          "id": "4:1608846059587771486",
+          "name": "claimedToday",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:5721975297453377701",
+      "lastPropertyId": "15:7954988184269641489",
+      "name": "PlayerProgress",
+      "properties": [
+        {
+          "id": "1:3173678590950932549",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5141205898043676829",
+          "name": "normalHighest",
+          "type": 6
+        },
+        {
+          "id": "3:5852972910858267399",
+          "name": "hardHighest",
+          "type": 6
+        },
+        {
+          "id": "4:2415869980273436639",
+          "name": "ultraHighest",
+          "type": 6
+        },
+        {
+          "id": "5:6073628706487738678",
+          "name": "hints",
+          "type": 6
+        },
+        {
+          "id": "6:5956125930848638052",
+          "name": "extraLives",
+          "type": 6
+        },
+        {
+          "id": "7:3227337024713281160",
+          "name": "undos",
+          "type": 6
+        },
+        {
+          "id": "8:3131882955628838766",
+          "name": "bulbs",
+          "type": 6
+        },
+        {
+          "id": "9:2701891915401600914",
+          "name": "tutorialSeen",
+          "type": 1
+        },
+        {
+          "id": "10:1224557861632085792",
+          "name": "lastRuleTutorialLevel",
+          "type": 6
+        },
+        {
+          "id": "11:1100188890406525148",
+          "name": "diagonalRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "12:2413943962156181175",
+          "name": "minDistanceRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "13:3685575093260790641",
+          "name": "knightMoveRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "14:613559806886336316",
+          "name": "adsRemoved",
+          "type": 1
+        },
+        {
+          "id": "15:7954988184269641489",
+          "name": "levelsCompletedCount",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "3:2045880825227824889",
+      "lastPropertyId": "5:526746762152375839",
+      "name": "SettingsModel",
+      "properties": [
+        {
+          "id": "1:6446526463243470978",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3469116826683986884",
+          "name": "musicVolume",
+          "type": 8
+        },
+        {
+          "id": "3:5891764849343042463",
+          "name": "sfxVolume",
+          "type": 8
+        },
+        {
+          "id": "4:6760770555663876785",
+          "name": "selectedThemeIndex",
+          "type": 6
+        },
+        {
+          "id": "5:526746762152375839",
+          "name": "vibrationEnabled",
+          "type": 1
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "3:2045880825227824889",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}

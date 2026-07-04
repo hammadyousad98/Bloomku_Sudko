@@ -1,0 +1,150 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:4370168794124197122",
+      "lastPropertyId": "4:4290983376059355038",
+      "name": "DailyRewardState",
+      "properties": [
+        {
+          "id": "1:1459133958021992578",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4580897389184361288",
+          "name": "currentStreakDay",
+          "type": 6
+        },
+        {
+          "id": "3:6849963347669569467",
+          "name": "lastClaimDate",
+          "type": 9
+        },
+        {
+          "id": "4:4290983376059355038",
+          "name": "claimedToday",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:3079320991520534107",
+      "lastPropertyId": "12:157986918661610179",
+      "name": "PlayerProgress",
+      "properties": [
+        {
+          "id": "1:1338959543473581982",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5340698426127719809",
+          "name": "normalHighest",
+          "type": 6
+        },
+        {
+          "id": "3:5940032039324559731",
+          "name": "hardHighest",
+          "type": 6
+        },
+        {
+          "id": "4:7549169434530044980",
+          "name": "ultraHighest",
+          "type": 6
+        },
+        {
+          "id": "5:4748831320157891971",
+          "name": "hints",
+          "type": 6
+        },
+        {
+          "id": "6:6476433726047124486",
+          "name": "extraLives",
+          "type": 6
+        },
+        {
+          "id": "7:2546647994326110686",
+          "name": "undos",
+          "type": 6
+        },
+        {
+          "id": "8:8110973233744550784",
+          "name": "bulbs",
+          "type": 6
+        },
+        {
+          "id": "9:7752715354692305356",
+          "name": "tutorialSeen",
+          "type": 1
+        },
+        {
+          "id": "10:8981744845012209916",
+          "name": "lastRuleTutorialLevel",
+          "type": 6
+        },
+        {
+          "id": "11:4285435800749709721",
+          "name": "adsRemoved",
+          "type": 1
+        },
+        {
+          "id": "12:157986918661610179",
+          "name": "levelsCompletedCount",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "3:8181293603307300879",
+      "lastPropertyId": "5:1428176916740032932",
+      "name": "SettingsModel",
+      "properties": [
+        {
+          "id": "1:7114717474957569505",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:1484279421542001549",
+          "name": "musicVolume",
+          "type": 8
+        },
+        {
+          "id": "3:6176013920086388741",
+          "name": "sfxVolume",
+          "type": 8
+        },
+        {
+          "id": "4:9140706585786819276",
+          "name": "selectedThemeIndex",
+          "type": 6
+        },
+        {
+          "id": "5:1428176916740032932",
+          "name": "vibrationEnabled",
+          "type": 1
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "3:8181293603307300879",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}
