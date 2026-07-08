@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bloomku/core/utils/puzzle_generator.dart';
+import 'package:Zendoku/core/utils/puzzle_generator.dart';
 
 void main() {
   group('PuzzleGenerator', () {
