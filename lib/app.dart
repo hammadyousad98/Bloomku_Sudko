@@ -6,6 +6,8 @@ import 'core/theme/theme_model.dart';
 import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
 import 'services/audio_service.dart';
+import 'services/ad_service.dart';
+import 'data/repositories/progress_repository.dart';
 
 class BloomkuApp extends StatefulWidget {
   const BloomkuApp({super.key});
@@ -20,7 +22,13 @@ class _BloomkuAppState extends State<BloomkuApp> {
   @override
   void initState() {
     super.initState();
-    _listener = AppLifecycleListener(onPause: () => AudioService.stopMusic());
+    _listener = AppLifecycleListener(
+      onPause: () => AudioService.stopMusic(),
+      onResume: () {
+        final adsRemoved = sl<ProgressRepository>().getProgress().adsRemoved;
+        AdService.showAppOpenAdIfAvailable(adsRemoved: adsRemoved);
+      },
+    );
   }
 
   @override

@@ -13,14 +13,25 @@ class ThemedIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.bloomkuTheme;
-    return SvgPicture.asset(
-      iconPath ?? theme.objectIconPaths.first,
-      width: size,
-      height: size,
-      colorFilter: ColorFilter.mode(
-        color ?? theme.accentColor,
-        BlendMode.srcIn,
-      ),
-    );
+    final path = iconPath ?? theme.objectIconPaths.first;
+
+    if (path.endsWith('.svg')) {
+      return SvgPicture.asset(
+        path,
+        width: size,
+        height: size,
+        colorFilter: ColorFilter.mode(
+          color ?? theme.accentColor,
+          BlendMode.srcIn,
+        ),
+      );
+    } else {
+      return Image.asset(
+        path,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+      );
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/audio_service.dart';
+import '../../services/ad_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../../core/constants/ad_constants.dart';
@@ -50,10 +51,12 @@ class _GameScreenState extends State<GameScreen> {
 
     _cubit.startLevel(widget.level, pTrack);
     AudioService.playGameMusic();
+    AdService.isInGame = true;
   }
 
   @override
   void dispose() {
+    AdService.isInGame = false;
     _cubit.close();
     super.dispose();
   }
@@ -163,7 +166,8 @@ class _GameScreenState extends State<GameScreen> {
                     level: state.levelNumber,
                     gridSize: state.puzzle.gridSize,
                   ),
-                  if (AdConstants.showTopBannerAd) const BannerAdWidget(),
+                  if (AdConstants.showTopBannerAd)
+                    BannerAdWidget(adUnitId: AdConstants.topBannerUnitId),
                   ProgressRow(
                     placedCount: state.placedCount,
                     totalCount: state.targetCount,
@@ -199,7 +203,8 @@ class _GameScreenState extends State<GameScreen> {
                     onBulbTap: () => _cubit.useBulb(),
                     onUndoTap: () => _cubit.undoLast(),
                   ),
-                  if (AdConstants.showBottomBannerAd) const BannerAdWidget(),
+                  if (AdConstants.showBottomBannerAd)
+                    BannerAdWidget(adUnitId: AdConstants.bottomBannerUnitId),
                 ],
               );
 

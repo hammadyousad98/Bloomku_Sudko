@@ -7,10 +7,67 @@ class AdService {
   static InterstitialAd? _interstitialAd;
   static bool _interstitialReady = false;
 
+  static AppOpenAd? _appOpenAd;
+  static DateTime? _appOpenLoadTime;
+  static bool _isShowingAd = false;
+  static bool isInGame = false;
+
   /// Call in main() before runApp()
   static Future<void> initialize() async {
     await MobileAds.instance.initialize();
     _preloadInterstitial();
+    _preloadAppOpenAd();
+  }
+
+  static void _preloadAppOpenAd() {
+    AppOpenAd.load(
+      adUnitId: AdConstants.appOpenAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: AppOpenAdLoadCallback(
+        onAdLoaded: (ad) {
+          _appOpenAd = ad;
+          _appOpenLoadTime = DateTime.now();
+        },
+        onAdFailedToLoad: (error) {},
+      ),
+    );
+  }
+
+  static void showAppOpenAdIfAvailable({bool adsRemoved = false}) {
+    if (adsRemoved || _isShowingAd || isInGame) return;
+
+    if (_appOpenAd == null) {
+      _preloadAppOpenAd();
+      return;
+    }
+
+    if (_appOpenLoadTime != null &&
+        DateTime.now().difference(_appOpenLoadTime!) > const Duration(hours: 4)) {
+      _appOpenAd!.dispose();
+      _appOpenAd = null;
+      _preloadAppOpenAd();
+      return;
+    }
+
+    _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (ad) {
+        _isShowingAd = true;
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        _isShowingAd = false;
+        ad.dispose();
+        _appOpenAd = null;
+        _preloadAppOpenAd();
+      },
+      onAdDismissedFullScreenContent: (ad) {
+        _isShowingAd = false;
+        ad.dispose();
+        _appOpenAd = null;
+        _preloadAppOpenAd();
+      },
+    );
+
+    _appOpenAd!.show();
   }
 
   /// Preloads the interstitial ad so it's ready when needed.
@@ -23,11 +80,16 @@ class AdService {
           _interstitialAd = ad;
           _interstitialReady = true;
           ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              _isShowingAd = true;
+            },
             onAdDismissedFullScreenContent: (ad) {
+              _isShowingAd = false;
               ad.dispose();
               _preloadInterstitial();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
+              _isShowingAd = false;
               ad.dispose();
               _preloadInterstitial();
             },
@@ -59,10 +121,15 @@ class AdService {
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              _isShowingAd = true;
+            },
             onAdDismissedFullScreenContent: (ad) {
+              _isShowingAd = false;
               ad.dispose();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
+              _isShowingAd = false;
               ad.dispose();
             },
           );
@@ -79,12 +146,16 @@ class AdService {
   }
 
   /// Creates and returns a BannerAd (caller must show it in a widget).
+  ///
+  /// [adUnitId] should be the placement-specific unit ID from [AdConstants],
+  /// e.g. `AdConstants.topBannerUnitId` or `AdConstants.bottomBannerUnitId`.
   static BannerAd createBanner({
+    required String adUnitId,
     BannerAdListener? listener,
     AdSize size = AdSize.banner,
   }) {
     return BannerAd(
-      adUnitId: AdConstants.bannerUnitId,
+      adUnitId: adUnitId,
       size: size,
       request: const AdRequest(),
       listener: listener ?? const BannerAdListener(),

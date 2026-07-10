@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:Zendoku/app.dart';
+import 'package:zendoku/app.dart';
 
 void main() {
   test('BloomkuApp can be constructed', () {

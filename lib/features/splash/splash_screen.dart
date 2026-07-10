@@ -70,7 +70,9 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const ThemedIcon(size: 80)
-                    .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                    .animate(
+                        onPlay: (controller) =>
+                            controller.repeat(reverse: true))
                     .scale(
                       begin: const Offset(1.0, 1.0),
                       end: const Offset(1.08, 1.08),
@@ -81,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     .fadeIn(duration: const Duration(milliseconds: 600)),
                 const SizedBox(height: 24),
                 Text(
-                  'Bloomku',
+                  'Zenduko',
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 48,

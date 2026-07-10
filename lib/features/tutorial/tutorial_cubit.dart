@@ -73,7 +73,7 @@ class TutorialCubit extends Cubit<TutorialState> {
   static List<TutorialSlide> getMainSlides() {
     return const [
       TutorialSlide(
-        title: "Welcome to Bloomku",
+        title: "Welcome to Zenduko",
         body:
             "A mindful logic puzzle. Place one [objectName] in every row, column, and color region.",
       ),

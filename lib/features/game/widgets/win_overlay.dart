@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lottie/lottie.dart';
+import 'package:confetti/confetti.dart';
+import 'dart:math';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/theme_model.dart';
 import '../cubit/game_state.dart';
 
-class WinOverlay extends StatelessWidget {
+class WinOverlay extends StatefulWidget {
   final GameState state;
   final VoidCallback onNextLevel;
   final VoidCallback onMenu;
@@ -18,9 +20,29 @@ class WinOverlay extends StatelessWidget {
   });
 
   @override
+  State<WinOverlay> createState() => _WinOverlayState();
+}
+
+class _WinOverlayState extends State<WinOverlay> {
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiController.play();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.bloomkuTheme;
-    final wrongPlacements = state.maxLives - state.livesRemaining;
+    final wrongPlacements = widget.state.maxLives - widget.state.livesRemaining;
     int stars = 3;
     if (wrongPlacements >= 3) {
       stars = 1;
@@ -28,14 +50,14 @@ class WinOverlay extends StatelessWidget {
       stars = 2;
     }
 
-    final minutes = state.elapsed.inMinutes;
-    final seconds = (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final minutes = widget.state.elapsed.inMinutes;
+    final seconds = (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     String trackName = 'Normal';
-    if (state.activeTrack == PuzzleTrack.hard) trackName = 'Hard ×1.5';
-    if (state.activeTrack == PuzzleTrack.ultraHard) trackName = 'Ultra ×2.5';
-    final completedAllLevels = state.levelNumber >= maxLevelCount;
+    if (widget.state.activeTrack == PuzzleTrack.hard) trackName = 'Hard ×1.5';
+    if (widget.state.activeTrack == PuzzleTrack.ultraHard) trackName = 'Ultra ×2.5';
+    final completedAllLevels = widget.state.levelNumber >= maxLevelCount;
 
     return Stack(
       children: [
@@ -85,7 +107,7 @@ class WinOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "${state.score}",
+                  "${widget.state.score}",
                   style: TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,
@@ -136,7 +158,7 @@ class WinOverlay extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: onMenu,
+                        onPressed: widget.onMenu,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.cardColor,
                           foregroundColor: theme.textPrimary,
@@ -159,7 +181,7 @@ class WinOverlay extends StatelessWidget {
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: onNextLevel,
+                          onPressed: widget.onNextLevel,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: theme.accentColor,
                             foregroundColor: Colors.white,
@@ -192,13 +214,20 @@ class WinOverlay extends StatelessWidget {
         ),
 
         // Confetti
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Lottie.asset(
-              'assets/lottie/confetti.json',
-              repeat: false,
-              fit: BoxFit.cover,
-            ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirection: pi / 2, // blast downwards
+            maxBlastForce: 25,
+            minBlastForce: 10,
+            emissionFrequency: 0.05,
+            numberOfParticles: 30,
+            gravity: 0.1,
+            colors: [
+              theme.accentColor,
+              ...kBloomkuTileColors.take(3), // Use a few tile colors
+            ],
           ),
         ),
       ],

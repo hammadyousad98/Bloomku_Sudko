@@ -5,8 +5,14 @@ import '../../services/ad_service.dart';
 import '../../data/repositories/progress_repository.dart';
 
 /// Shows a banner ad or an empty SizedBox if ads are removed.
+///
+/// [adUnitId] must be one of the placement-specific IDs from [AdConstants]
+/// (e.g. `AdConstants.topBannerUnitId` or `AdConstants.bottomBannerUnitId`).
 class BannerAdWidget extends StatefulWidget {
-  const BannerAdWidget({super.key});
+  final String adUnitId;
+
+  const BannerAdWidget({super.key, required this.adUnitId});
+
   @override 
   State<BannerAdWidget> createState() => _BannerAdWidgetState();
 }
@@ -21,6 +27,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     final adsRemoved = GetIt.I<ProgressRepository>().getProgress().adsRemoved;
     if (!adsRemoved) {
       _bannerAd = AdService.createBanner(
+        adUnitId: widget.adUnitId,
         listener: BannerAdListener(
           onAdLoaded: (ad) {
             setState(() {

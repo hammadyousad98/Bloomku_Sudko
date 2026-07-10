@@ -1,8 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/di/service_locator.dart';
@@ -48,15 +48,24 @@ class _MainMenuScreenView extends StatelessWidget {
     final theme = context.bloomkuTheme;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [theme.backgroundTop, theme.backgroundBottom],
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [theme.backgroundTop, theme.backgroundBottom],
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
+          
+          // Ambient Theme Background
+          const _ThemeBackgroundLayer(),
+
+          // Foreground UI
+          SafeArea(
           child: Column(
             children: [
               // TOP ROW
@@ -103,7 +112,7 @@ class _MainMenuScreenView extends StatelessWidget {
                       ),
                   const SizedBox(height: 16),
                   Text(
-                    'Bloomku',
+                    'Zenduko',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 52,
@@ -128,7 +137,7 @@ class _MainMenuScreenView extends StatelessWidget {
                       color: theme.textSecondary,
                     ),
                   )
-                      .animate(delay: const Duration(milliseconds: 200))
+                      .animate(delay: const Duration(milliseconds: 300))
                       .fadeIn(duration: const Duration(milliseconds: 300))
                       .slideY(
                         begin: 0.05,
@@ -157,7 +166,9 @@ class _MainMenuScreenView extends StatelessWidget {
                           begin: 0.05,
                           end: 0,
                           duration: const Duration(milliseconds: 300),
-                        ),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .scaleXY(begin: 1.0, end: 1.04, duration: const Duration(milliseconds: 1500), curve: Curves.easeInOut),
                     const SizedBox(height: 16),
                     _PrimaryButton(
                       label: "Daily Challenges 🏆",
@@ -165,8 +176,13 @@ class _MainMenuScreenView extends StatelessWidget {
                       textColor: theme.accentColor,
                       onTap: () => context.push('/challenges'),
                     )
-                        .animate(delay: const Duration(milliseconds: 600))
-                        .fadeIn(duration: const Duration(milliseconds: 300)),
+                        .animate(delay: const Duration(milliseconds: 500))
+                        .fadeIn(duration: const Duration(milliseconds: 300))
+                        .slideY(
+                          begin: 0.05,
+                          end: 0,
+                          duration: const Duration(milliseconds: 300),
+                        ),
                     const SizedBox(height: 16),
                     BlocBuilder<MainMenuCubit, MainMenuState>(
                       builder: (context, state) {
@@ -179,38 +195,22 @@ class _MainMenuScreenView extends StatelessWidget {
                       },
                     )
                         .animate(delay: const Duration(milliseconds: 600))
-                        .fadeIn(duration: const Duration(milliseconds: 300)),
+                        .fadeIn(duration: const Duration(milliseconds: 300))
+                        .slideY(
+                          begin: 0.05,
+                          end: 0,
+                          duration: const Duration(milliseconds: 300),
+                        ),
                   ],
                 ),
               ),
 
               const Spacer(flex: 1),
-
-              // INVENTORY ROW
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: BlocBuilder<MainMenuCubit, MainMenuState>(
-                  builder: (context, state) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _InventoryChip(icon: '💡', count: state.hints),
-                        _InventoryChip(
-                          icon: '❤️',
-                          count: state.extraLives,
-                        ),
-                        _InventoryChip(icon: '↩', count: state.undos),
-                        _InventoryChip(icon: '💡', count: state.bulbs),
-                      ],
-                    );
-                  },
-                )
-                    .animate(delay: const Duration(milliseconds: 800))
-                    .fadeIn(duration: const Duration(milliseconds: 200)),
-              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
+        ],
       ),
     );
   }
@@ -357,48 +357,7 @@ class _GradientButton extends StatelessWidget {
   }
 }
 
-class _InventoryChip extends StatelessWidget {
-  final String icon;
-  final int count;
 
-  const _InventoryChip({required this.icon, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.bloomkuTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Material(
-        color: theme.cardColor.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 8.0,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(icon, style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 4),
-                Text(
-                  count.toString(),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: theme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class ThemeSelectorSheet extends StatelessWidget {
   const ThemeSelectorSheet({super.key});
@@ -518,11 +477,137 @@ class _PreviewIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      themeData.objectIconPaths.first,
-      width: 48,
-      height: 48,
-      colorFilter: ColorFilter.mode(themeData.accentColor, BlendMode.srcIn),
+    return ThemedIcon(
+      iconPath: themeData.objectIconPaths.first,
+      size: 48,
+      color: themeData.accentColor,
     );
   }
+}
+
+class _ThemeBackgroundLayer extends StatefulWidget {
+  const _ThemeBackgroundLayer();
+
+  @override
+  State<_ThemeBackgroundLayer> createState() => _ThemeBackgroundLayerState();
+}
+
+class _ThemeBackgroundLayerState extends State<_ThemeBackgroundLayer> {
+  final _random = Random();
+  late List<_Particle> _particles;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final theme = context.bloomkuTheme;
+    // Keep it lightweight (15 particles max)
+    _particles = List.generate(15, (index) {
+      return _Particle(
+        x: _random.nextDouble(),
+        y: _random.nextDouble(),
+        size: 15 + _random.nextDouble() * 30,
+        iconPath: theme.objectIconPaths[_random.nextInt(theme.objectIconPaths.length)],
+        color: theme.accentColor,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.bloomkuTheme;
+    final isOcean = theme.id == BloomkuTheme.ocean;
+    final isCosmos = theme.id == BloomkuTheme.cosmos;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          children: _particles.map((p) {
+            Widget child;
+            if (isCosmos) {
+              // Twinkling stars
+              child = Positioned(
+                left: p.x * constraints.maxWidth,
+                top: p.y * constraints.maxHeight,
+                child: ThemedIcon(
+                  iconPath: p.iconPath,
+                  size: p.size * 0.6,
+                  color: p.color.withValues(alpha: 0.25),
+                )
+                    .animate(
+                      onPlay: (c) => c.loop(reverse: true),
+                      delay: Duration(milliseconds: _random.nextInt(3000)),
+                    )
+                    .fadeIn(duration: Duration(seconds: 2 + _random.nextInt(3))),
+              );
+            } else if (isOcean) {
+              // Bubbles drifting up
+              child = Positioned(
+                left: p.x * constraints.maxWidth,
+                bottom: p.y * constraints.maxHeight,
+                child: ThemedIcon(
+                  iconPath: p.iconPath,
+                  size: p.size,
+                  color: p.color.withValues(alpha: 0.15),
+                )
+                    .animate(
+                      onPlay: (c) => c.loop(),
+                      delay: Duration(milliseconds: _random.nextInt(6000)),
+                    )
+                    .slideY(
+                      begin: 1,
+                      end: -(constraints.maxHeight / p.size),
+                      duration: Duration(seconds: 8 + _random.nextInt(10)),
+                    )
+                    .fadeIn(duration: 1.seconds),
+              );
+            } else {
+              // Falling petals/leaves/fruit
+              child = Positioned(
+                left: p.x * constraints.maxWidth,
+                top: p.y * constraints.maxHeight,
+                child: ThemedIcon(
+                  iconPath: p.iconPath,
+                  size: p.size,
+                  color: p.color.withValues(alpha: 0.15),
+                )
+                    .animate(
+                      onPlay: (c) => c.loop(),
+                      delay: Duration(milliseconds: _random.nextInt(6000)),
+                    )
+                    .slideY(
+                      begin: -(constraints.maxHeight / p.size),
+                      end: 1.5,
+                      duration: Duration(seconds: 7 + _random.nextInt(12)),
+                    )
+                    .slideX(
+                      begin: -0.3,
+                      end: 0.3,
+                      duration: Duration(seconds: 3 + _random.nextInt(4)),
+                      curve: Curves.easeInOutSine,
+                    )
+                    .fadeIn(duration: 1.seconds),
+              );
+            }
+            return child;
+          }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _Particle {
+  final double x;
+  final double y;
+  final double size;
+  final String iconPath;
+  final Color color;
+
+  _Particle({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.iconPath,
+    required this.color,
+  });
 }
