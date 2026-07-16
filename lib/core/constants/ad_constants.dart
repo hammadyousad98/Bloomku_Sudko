@@ -3,13 +3,13 @@ import 'dart:io';
 class AdConstants {
   /// true uses Google's test ad unit IDs. Set false for release after replacing
   /// the placeholder real IDs below with AdMob IDs for this app.
-  static const bool useTestAds = true;
+  static const bool useTestAds = false;
 
   /// Per-placement banner switches for GameScreen. These only control the top
   /// and bottom banner widgets; PlayerProgress.adsRemoved remains the master
   /// switch that suppresses all ads for a player.
-  static const bool showTopBannerAd = false;
-  static const bool showBottomBannerAd = false;
+  static const bool showTopBannerAd = true;
+  static const bool showBottomBannerAd = true;
 
   static String get topBannerUnitId {
     if (useTestAds) {
