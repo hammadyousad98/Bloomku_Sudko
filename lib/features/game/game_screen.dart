@@ -8,6 +8,7 @@ import '../../core/constants/ad_constants.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/progress_repository.dart';
+import '../../data/repositories/settings_repository.dart';
 import '../../core/utils/puzzle_generator.dart';
 import '../tutorial/tutorial_cubit.dart';
 import '../tutorial/tutorial_screen.dart';
@@ -41,7 +42,8 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     final progressRepo = GetIt.I<ProgressRepository>();
-    _cubit = GameCubit(progressRepo, null, null);
+    final settingsRepo = GetIt.I<SettingsRepository>();
+    _cubit = GameCubit(progressRepo, settingsRepo);
 
     final pTrack = widget.track.toLowerCase() == 'hard'
         ? PuzzleTrack.hard
@@ -226,6 +228,13 @@ class _GameScreenState extends State<GameScreen> {
                     Positioned.fill(
                       child: GameOverOverlay(
                         state: state,
+                        onWatchAdForLife: () => AdService.showRewarded(
+                          RewardType.extraLife,
+                          onRewarded: _cubit.onRewardedAdCompleted,
+                          adsRemoved: GetIt.I<ProgressRepository>()
+                              .getProgress()
+                              .adsRemoved,
+                        ),
                         onGiveUp: () => _cubit.giveUp(),
                         onTryAgain: _restartLevel,
                         onMenu: _goToMenu,

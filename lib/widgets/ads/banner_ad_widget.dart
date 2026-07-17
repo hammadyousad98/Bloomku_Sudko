@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:get_it/get_it.dart';
 import '../../services/ad_service.dart';
@@ -13,7 +13,7 @@ class BannerAdWidget extends StatefulWidget {
 
   const BannerAdWidget({super.key, required this.adUnitId});
 
-  @override 
+  @override
   State<BannerAdWidget> createState() => _BannerAdWidgetState();
 }
 
@@ -21,31 +21,49 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
-  @override 
+  @override
   void initState() {
     super.initState();
     final adsRemoved = GetIt.I<ProgressRepository>().getProgress().adsRemoved;
     if (!adsRemoved) {
+      final preloadedBanner = AdService.getPreloadedBanner(widget.adUnitId);
+      if (preloadedBanner != null) {
+        _bannerAd = preloadedBanner;
+        _isLoaded = true;
+        return;
+      }
+
       _bannerAd = AdService.createBanner(
         adUnitId: widget.adUnitId,
         listener: BannerAdListener(
           onAdLoaded: (ad) {
-            setState(() {
-              _isLoaded = true;
-            });
+            if (mounted) {
+              setState(() {
+                _isLoaded = true;
+              });
+            } else {
+              ad.dispose();
+            }
           },
           onAdFailedToLoad: (ad, error) {
+            debugPrint(
+              'Banner ad (${widget.adUnitId}) failed to load: '
+              'code=${error.code}, message=${error.message}, '
+              'domain=${error.domain}, error=$error',
+            );
             ad.dispose();
-            setState(() {
-              _isLoaded = false;
-            });
+            if (mounted) {
+              setState(() {
+                _isLoaded = false;
+              });
+            }
           },
         ),
       )..load();
     }
   }
 
-  @override 
+  @override
   Widget build(BuildContext context) {
     if (!_isLoaded || _bannerAd == null) return const SizedBox.shrink();
     return SizedBox(
@@ -55,9 +73,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     );
   }
 
-  @override 
-  void dispose() { 
-    _bannerAd?.dispose(); 
-    super.dispose(); 
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 }

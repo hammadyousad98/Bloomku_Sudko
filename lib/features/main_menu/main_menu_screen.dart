@@ -15,6 +15,7 @@ import '../../data/repositories/reward_repository.dart';
 import 'main_menu_cubit.dart';
 
 import '../../services/audio_service.dart';
+import '../../services/ad_service.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -60,141 +61,84 @@ class _MainMenuScreenView extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Ambient Theme Background
           const _ThemeBackgroundLayer(),
 
           // Foreground UI
           SafeArea(
-          child: Column(
-            children: [
-              // TOP ROW
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
+            child: Column(
+              children: [
+                // TOP ROW
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _TopIconButton(
+                        icon: Icons.settings,
+                        onTap: () => context.push('/settings'),
+                      ),
+                      _TopIconButton(
+                        icon: Icons.palette,
+                        onTap: () => _showThemeSelector(context),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                const Spacer(flex: 2),
+
+                // HERO SECTION
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _TopIconButton(
-                      icon: Icons.settings,
-                      onTap: () => context.push('/settings'),
-                    ),
-                    _TopIconButton(
-                      icon: Icons.palette,
-                      onTap: () => _showThemeSelector(context),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(flex: 2),
-
-              // HERO SECTION
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const ThemedIcon(size: 120)
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .moveY(
-                        begin: 0,
-                        end: -8,
-                        duration: const Duration(milliseconds: 2500),
-                        curve: Curves.easeInOut,
-                      )
-                      .animate()
-                      .fadeIn(duration: const Duration(milliseconds: 400))
-                      .slideY(
-                        begin: 0.05,
-                        end: 0,
-                        duration: const Duration(milliseconds: 400),
-                      ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Zenduko',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 52,
-                      fontWeight: FontWeight.w800,
-                      color: theme.textPrimary,
-                    ),
-                  )
-                      .animate(delay: const Duration(milliseconds: 200))
-                      .fadeIn(duration: const Duration(milliseconds: 300))
-                      .slideY(
-                        begin: 0.05,
-                        end: 0,
-                        duration: const Duration(milliseconds: 300),
-                      ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Mindful Puzzle',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: theme.textSecondary,
-                    ),
-                  )
-                      .animate(delay: const Duration(milliseconds: 300))
-                      .fadeIn(duration: const Duration(milliseconds: 300))
-                      .slideY(
-                        begin: 0.05,
-                        end: 0,
-                        duration: const Duration(milliseconds: 300),
-                      ),
-                ],
-              ),
-
-              const Spacer(flex: 3),
-
-              // BUTTONS SECTION
-              FractionallySizedBox(
-                widthFactor: 0.8,
-                child: Column(
-                  children: [
-                    _PrimaryButton(
-                      label: "Play",
-                      backgroundColor: theme.accentColor,
-                      textColor: Colors.white,
-                      onTap: () => _playCurrentLevel(context),
-                    )
-                        .animate(delay: const Duration(milliseconds: 400))
-                        .fadeIn(duration: const Duration(milliseconds: 300))
-                        .slideY(
-                          begin: 0.05,
-                          end: 0,
-                          duration: const Duration(milliseconds: 300),
-                        )
+                    const ThemedIcon(size: 120)
                         .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .scaleXY(begin: 1.0, end: 1.04, duration: const Duration(milliseconds: 1500), curve: Curves.easeInOut),
+                        .moveY(
+                          begin: 0,
+                          end: -8,
+                          duration: const Duration(milliseconds: 2500),
+                          curve: Curves.easeInOut,
+                        )
+                        .animate()
+                        .fadeIn(duration: const Duration(milliseconds: 400))
+                        .slideY(
+                          begin: 0.05,
+                          end: 0,
+                          duration: const Duration(milliseconds: 400),
+                        ),
                     const SizedBox(height: 16),
-                    _PrimaryButton(
-                      label: "Daily Challenges 🏆",
-                      backgroundColor: theme.cardColor,
-                      textColor: theme.accentColor,
-                      onTap: () => context.push('/challenges'),
+                    Text(
+                      'Zenduko',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 52,
+                        fontWeight: FontWeight.w800,
+                        color: theme.textPrimary,
+                      ),
                     )
-                        .animate(delay: const Duration(milliseconds: 500))
+                        .animate(delay: const Duration(milliseconds: 200))
                         .fadeIn(duration: const Duration(milliseconds: 300))
                         .slideY(
                           begin: 0.05,
                           end: 0,
                           duration: const Duration(milliseconds: 300),
                         ),
-                    const SizedBox(height: 16),
-                    BlocBuilder<MainMenuCubit, MainMenuState>(
-                      builder: (context, state) {
-                        return _GradientButton(
-                          label: state.streakDay > 0
-                              ? "🔥 Day ${state.streakDay}"
-                              : "Start your streak!",
-                          onTap: () => context.push('/rewards'),
-                        );
-                      },
+                    const SizedBox(height: 4),
+                    Text(
+                      'Mindful Puzzle',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        color: theme.textSecondary,
+                      ),
                     )
-                        .animate(delay: const Duration(milliseconds: 600))
+                        .animate(delay: const Duration(milliseconds: 300))
                         .fadeIn(duration: const Duration(milliseconds: 300))
                         .slideY(
                           begin: 0.05,
@@ -203,13 +147,74 @@ class _MainMenuScreenView extends StatelessWidget {
                         ),
                   ],
                 ),
-              ),
 
-              const Spacer(flex: 1),
-              const SizedBox(height: 16),
-            ],
+                const Spacer(flex: 3),
+
+                // BUTTONS SECTION
+                FractionallySizedBox(
+                  widthFactor: 0.8,
+                  child: Column(
+                    children: [
+                      _PrimaryButton(
+                        label: "Play",
+                        backgroundColor: theme.accentColor,
+                        textColor: Colors.white,
+                        onTap: () => _playCurrentLevel(context),
+                      )
+                          .animate(delay: const Duration(milliseconds: 400))
+                          .fadeIn(duration: const Duration(milliseconds: 300))
+                          .slideY(
+                            begin: 0.05,
+                            end: 0,
+                            duration: const Duration(milliseconds: 300),
+                          )
+                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .scaleXY(
+                              begin: 1.0,
+                              end: 1.04,
+                              duration: const Duration(milliseconds: 1500),
+                              curve: Curves.easeInOut),
+                      const SizedBox(height: 16),
+                      _PrimaryButton(
+                        label: "Daily Challenges 🏆",
+                        backgroundColor: theme.cardColor,
+                        textColor: theme.accentColor,
+                        onTap: () => context.push('/challenges'),
+                      )
+                          .animate(delay: const Duration(milliseconds: 500))
+                          .fadeIn(duration: const Duration(milliseconds: 300))
+                          .slideY(
+                            begin: 0.05,
+                            end: 0,
+                            duration: const Duration(milliseconds: 300),
+                          ),
+                      const SizedBox(height: 16),
+                      BlocBuilder<MainMenuCubit, MainMenuState>(
+                        builder: (context, state) {
+                          return _GradientButton(
+                            label: state.streakDay > 0
+                                ? "🔥 Day ${state.streakDay}"
+                                : "Start your streak!",
+                            onTap: () => context.push('/rewards'),
+                          );
+                        },
+                      )
+                          .animate(delay: const Duration(milliseconds: 600))
+                          .fadeIn(duration: const Duration(milliseconds: 300))
+                          .slideY(
+                            begin: 0.05,
+                            end: 0,
+                            duration: const Duration(milliseconds: 300),
+                          ),
+                    ],
+                  ),
+                ),
+
+                const Spacer(flex: 1),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
-        ),
         ],
       ),
     );
@@ -223,6 +228,8 @@ class _MainMenuScreenView extends StatelessWidget {
       );
       return;
     }
+
+    AdService.preloadGameBanners(adsRemoved: progress.adsRemoved);
 
     context.push(
       '/game',
@@ -356,8 +363,6 @@ class _GradientButton extends StatelessWidget {
     );
   }
 }
-
-
 
 class ThemeSelectorSheet extends StatelessWidget {
   const ThemeSelectorSheet({super.key});
@@ -506,7 +511,8 @@ class _ThemeBackgroundLayerState extends State<_ThemeBackgroundLayer> {
         x: _random.nextDouble(),
         y: _random.nextDouble(),
         size: 15 + _random.nextDouble() * 30,
-        iconPath: theme.objectIconPaths[_random.nextInt(theme.objectIconPaths.length)],
+        iconPath: theme
+            .objectIconPaths[_random.nextInt(theme.objectIconPaths.length)],
         color: theme.accentColor,
       );
     });
@@ -537,7 +543,8 @@ class _ThemeBackgroundLayerState extends State<_ThemeBackgroundLayer> {
                       onPlay: (c) => c.loop(reverse: true),
                       delay: Duration(milliseconds: _random.nextInt(3000)),
                     )
-                    .fadeIn(duration: Duration(seconds: 2 + _random.nextInt(3))),
+                    .fadeIn(
+                        duration: Duration(seconds: 2 + _random.nextInt(3))),
               );
             } else if (isOcean) {
               // Bubbles drifting up

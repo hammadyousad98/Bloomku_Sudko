@@ -15,7 +15,7 @@ class PlayerProgress {
   int ultraHighest = 31;
 
   /// Total hints owned
-  int hints = 3;
+  int hints = 5;
 
   /// Total extra lives owned
   int extraLives = 2;
@@ -24,7 +24,7 @@ class PlayerProgress {
   int undos = 5;
 
   /// Total bulbs owned
-  int bulbs = 1;
+  int bulbs = 5;
 
   /// Has the main tutorial been seen?
   bool tutorialSeen = false;

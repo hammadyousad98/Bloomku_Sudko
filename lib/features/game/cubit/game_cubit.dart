@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/utils/puzzle_generator.dart';
 import '../../../data/repositories/progress_repository.dart';
+import '../../../data/repositories/settings_repository.dart';
 import 'game_state.dart';
 
 import '../../../services/ad_service.dart';
+import '../../../services/audio_service.dart';
 
 GeneratedPuzzle _generatePuzzleIsolate(PuzzleConfig config) {
   var puzzle = PuzzleGenerator.generate(config);
@@ -17,15 +20,14 @@ GeneratedPuzzle _generatePuzzleIsolate(PuzzleConfig config) {
 
 class GameCubit extends Cubit<GameState> {
   final ProgressRepository _progressRepo;
-  final dynamic _adService; // AdService
-  final dynamic _audioService; // AudioService
+  final SettingsRepository _settingsRepo;
 
   static const Duration _generationTimeout = Duration(seconds: 5);
 
   Timer? _timer;
   int _generationToken = 0;
 
-  GameCubit(this._progressRepo, this._adService, this._audioService)
+  GameCubit(this._progressRepo, this._settingsRepo)
       : super(
           const GameState(
             phase: GamePhase.loading,
@@ -242,9 +244,10 @@ class GameCubit extends Cubit<GameState> {
         final newHistory = List<int>.from(state.moveHistory)..add(index);
         final newPlacedCount = state.placedCount + 1;
 
-        try {
-          _audioService.playTap();
-        } catch (_) {}
+        AudioService.playPlaceObject();
+        if (_settingsRepo.vibrationEnabled) {
+          unawaited(HapticFeedback.lightImpact());
+        }
 
         emit(
           state.copyWith(
@@ -261,9 +264,10 @@ class GameCubit extends Cubit<GameState> {
         }
       } else {
         // Invalid placement
-        try {
-          _audioService.playError();
-        } catch (_) {}
+        AudioService.playError();
+        if (_settingsRepo.vibrationEnabled) {
+          unawaited(HapticFeedback.heavyImpact());
+        }
 
         final lives = state.livesRemaining - 1;
         emit(
@@ -381,6 +385,10 @@ class GameCubit extends Cubit<GameState> {
   void _onLevelComplete() {
     _timer?.cancel();
 
+    if (_settingsRepo.vibrationEnabled) {
+      unawaited(HapticFeedback.heavyImpact());
+    }
+
     int wrongPlacements = (state.maxLives - state.livesRemaining);
     int baseScore = 1000;
     int errorsPenalty = wrongPlacements * 10;
@@ -391,9 +399,7 @@ class GameCubit extends Cubit<GameState> {
 
     final progress = _progressRepo.getProgress();
     if (progress.levelsCompletedCount % 2 == 0 && !progress.adsRemoved) {
-      try {
-        _adService.showInterstitial();
-      } catch (_) {}
+      AdService.showInterstitial(adsRemoved: progress.adsRemoved);
     }
 
     emit(state.copyWith(phase: GamePhase.levelComplete, score: finalScore));
@@ -430,6 +436,7 @@ class GameCubit extends Cubit<GameState> {
         AdService.showRewarded(
           RewardType.hint,
           onRewarded: onRewardedAdCompleted,
+          adsRemoved: _progressRepo.getProgress().adsRemoved,
         );
       } catch (_) {}
     }
@@ -481,6 +488,7 @@ class GameCubit extends Cubit<GameState> {
         AdService.showRewarded(
           RewardType.bulb,
           onRewarded: onRewardedAdCompleted,
+          adsRemoved: _progressRepo.getProgress().adsRemoved,
         );
       } catch (_) {}
     }
@@ -510,6 +518,7 @@ class GameCubit extends Cubit<GameState> {
         AdService.showRewarded(
           RewardType.undo,
           onRewarded: onRewardedAdCompleted,
+          adsRemoved: _progressRepo.getProgress().adsRemoved,
         );
       } catch (_) {}
     }
@@ -535,6 +544,7 @@ class GameCubit extends Cubit<GameState> {
     } else if (type == RewardType.undo) {
       _progressRepo.addUndos(1);
       emit(state.copyWith(undoCount: state.undoCount + 1));
+      undoLast();
     } else if (type == RewardType.extraLife) {
       _progressRepo.addExtraLives(1);
       emit(

@@ -3,10 +3,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_model.dart';
 import '../cubit/game_state.dart';
-import '../../../services/ad_service.dart';
 
 class GameOverOverlay extends StatelessWidget {
   final GameState state;
+  final VoidCallback onWatchAdForLife;
   final VoidCallback onGiveUp;
   final VoidCallback onTryAgain;
   final VoidCallback onMenu;
@@ -14,6 +14,7 @@ class GameOverOverlay extends StatelessWidget {
   const GameOverOverlay({
     super.key,
     required this.state,
+    required this.onWatchAdForLife,
     required this.onGiveUp,
     required this.onTryAgain,
     required this.onMenu,
@@ -82,12 +83,7 @@ class GameOverOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         ElevatedButton(
-          onPressed: () {
-            AdService.showRewarded(
-              RewardType.extraLife,
-              onRewarded: (_) {},
-            );
-          },
+          onPressed: onWatchAdForLife,
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.accentColor,
             foregroundColor: Colors.white,

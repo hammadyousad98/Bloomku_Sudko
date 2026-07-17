@@ -15,14 +15,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   objectBoxStore = await ObjectBoxStore.create();
   setupServiceLocator();
-  
-  await AdService.initialize();
+
+  final adsRemoved = sl<ProgressRepository>().getProgress().adsRemoved;
+  await AdService.initialize(adsRemoved: adsRemoved);
   await IapService.initialize();
   await AudioService.initialize(sl<SettingsRepository>());
   IapService.listenToPurchaseUpdates(sl<ProgressRepository>());
-  
+
   // Check streak on every launch — resets if a day was missed
   sl<RewardRepository>().checkAndUpdateStreak();
   runApp(const BloomkuApp());
 }
-
