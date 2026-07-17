@@ -11,6 +11,8 @@ enum GamePhase {
   generationError,
 }
 
+enum GameMode { progression, dailyChallenge }
+
 class GameState extends Equatable {
   final GamePhase phase;
   final GeneratedPuzzle puzzle;
@@ -27,6 +29,7 @@ class GameState extends Equatable {
   final int extraLiveCount;
   final PuzzleTrack activeTrack;
   final int levelNumber;
+  final GameMode mode;
   final bool showDifficultyBar;
   final bool showUltraTab;
   final List<int> moveHistory;
@@ -52,6 +55,7 @@ class GameState extends Equatable {
     required this.extraLiveCount,
     required this.activeTrack,
     required this.levelNumber,
+    this.mode = GameMode.progression,
     required this.showDifficultyBar,
     required this.showUltraTab,
     required this.moveHistory,
@@ -78,6 +82,7 @@ class GameState extends Equatable {
     int? extraLiveCount,
     PuzzleTrack? activeTrack,
     int? levelNumber,
+    GameMode? mode,
     bool? showDifficultyBar,
     bool? showUltraTab,
     List<int>? moveHistory,
@@ -103,6 +108,7 @@ class GameState extends Equatable {
       extraLiveCount: extraLiveCount ?? this.extraLiveCount,
       activeTrack: activeTrack ?? this.activeTrack,
       levelNumber: levelNumber ?? this.levelNumber,
+      mode: mode ?? this.mode,
       showDifficultyBar: showDifficultyBar ?? this.showDifficultyBar,
       showUltraTab: showUltraTab ?? this.showUltraTab,
       moveHistory: moveHistory ?? this.moveHistory,
@@ -132,6 +138,7 @@ class GameState extends Equatable {
         extraLiveCount,
         activeTrack,
         levelNumber,
+        mode,
         showDifficultyBar,
         showUltraTab,
         moveHistory,

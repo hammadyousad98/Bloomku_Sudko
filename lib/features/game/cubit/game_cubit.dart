@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/utils/daily_challenge_config.dart';
 import '../../../core/utils/puzzle_generator.dart';
+import '../../../data/repositories/daily_challenge_repository.dart';
 import '../../../data/repositories/progress_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 import 'game_state.dart';
@@ -21,14 +23,18 @@ GeneratedPuzzle _generatePuzzleIsolate(PuzzleConfig config) {
 class GameCubit extends Cubit<GameState> {
   final ProgressRepository _progressRepo;
   final SettingsRepository _settingsRepo;
+  final DailyChallengeRepository _dailyChallengeRepo;
 
   static const Duration _generationTimeout = Duration(seconds: 5);
 
   Timer? _timer;
   int _generationToken = 0;
 
-  GameCubit(this._progressRepo, this._settingsRepo)
-      : super(
+  GameCubit(
+    this._progressRepo,
+    this._settingsRepo,
+    this._dailyChallengeRepo,
+  ) : super(
           const GameState(
             phase: GamePhase.loading,
             puzzle: GeneratedPuzzle.invalid,
@@ -58,17 +64,40 @@ class GameCubit extends Cubit<GameState> {
   }
 
   Future<void> startLevel(int levelNumber, PuzzleTrack track) async {
+    await _startLevelInternal(levelNumber, track);
+  }
+
+  Future<void> startDailyChallenge() async {
+    final config = dailyChallengeConfigFor(DateTime.now());
+    await _startLevelInternal(
+      config.level,
+      config.track,
+      mode: GameMode.dailyChallenge,
+    );
+  }
+
+  Future<void> _startLevelInternal(
+    int levelNumber,
+    PuzzleTrack track, {
+    GameMode mode = GameMode.progression,
+  }) async {
     _timer?.cancel();
     final token = ++_generationToken;
 
-    final config = PuzzleGenerator.configForLevel(levelNumber, track);
+    var effectiveLevel = levelNumber;
+    var effectiveTrack = track;
+    var config = PuzzleGenerator.configForLevel(levelNumber, track);
+    String? fallbackStatusMessage;
+    final isDailyChallenge = mode == GameMode.dailyChallenge;
+
     emit(
       state.copyWith(
         phase: GamePhase.loading,
+        mode: mode,
         activeTrack: track,
         levelNumber: levelNumber,
-        showDifficultyBar: levelNumber >= 15,
-        showUltraTab: levelNumber > 30,
+        showDifficultyBar: !isDailyChallenge && levelNumber >= 15,
+        showUltraTab: !isDailyChallenge && levelNumber > 30,
         elapsed: Duration.zero,
         moveHistory: [],
         pendingRuleTutorials: const [],
@@ -110,6 +139,38 @@ class GameCubit extends Cubit<GameState> {
       return;
     }
 
+    if (!puzzle.isValid && isDailyChallenge) {
+      const fallbackDay = DailyChallengeDay(38, PuzzleTrack.ultraHard);
+      final fallbackConfig = PuzzleGenerator.configForLevel(
+        fallbackDay.level,
+        fallbackDay.track,
+      );
+
+      try {
+        puzzle = await compute(
+          _generatePuzzleIsolate,
+          fallbackConfig,
+        ).timeout(_generationTimeout);
+      } on TimeoutException {
+        puzzle = GeneratedPuzzle.invalid;
+      } catch (_) {
+        puzzle = GeneratedPuzzle.invalid;
+      }
+
+      if (isClosed || token != _generationToken) {
+        return;
+      }
+
+      if (puzzle.isValid) {
+        effectiveLevel = fallbackDay.level;
+        effectiveTrack = fallbackDay.track;
+        config = fallbackConfig;
+        fallbackStatusMessage =
+            "Today's puzzle needed a smaller board on this device — "
+            "here's a slightly easier version.";
+      }
+    }
+
     if (!puzzle.isValid) {
       emit(
         state.copyWith(
@@ -131,10 +192,10 @@ class GameCubit extends Cubit<GameState> {
 
     final progress = _progressRepo.getProgress();
     final bool showRuleTutorial = !_progressRepo.hasSeenRuleTutorial(
-      levelNumber,
+      effectiveLevel,
     );
     if (showRuleTutorial) {
-      _progressRepo.markRuleTutorialSeen(levelNumber);
+      _progressRepo.markRuleTutorialSeen(effectiveLevel);
     }
 
     // Build list of new rule tutorials to show
@@ -166,12 +227,13 @@ class GameCubit extends Cubit<GameState> {
         undoCount: progress.undos,
         bulbCount: progress.bulbs,
         extraLiveCount: progress.extraLives,
-        activeTrack: track,
-        levelNumber: levelNumber,
-        showDifficultyBar: levelNumber >= 15,
-        showUltraTab: levelNumber > 30,
+        mode: mode,
+        activeTrack: effectiveTrack,
+        levelNumber: effectiveLevel,
+        showDifficultyBar: !isDailyChallenge && effectiveLevel >= 15,
+        showUltraTab: !isDailyChallenge && effectiveLevel > 30,
         moveHistory: [],
-        statusMessage: null,
+        statusMessage: fallbackStatusMessage,
         showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
         pendingRuleTutorials: pending,
         errorTileIndex: null,
@@ -395,11 +457,19 @@ class GameCubit extends Cubit<GameState> {
     int flawlessBonus = wrongPlacements == 0 ? 50 : 0;
     int finalScore = state.score + baseScore - errorsPenalty + flawlessBonus;
 
-    _progressRepo.completeLevel(state.levelNumber, state.activeTrack);
+    if (state.mode == GameMode.dailyChallenge) {
+      if (!_dailyChallengeRepo.hasCompletedToday()) {
+        _dailyChallengeRepo.markCompletedToday();
+        _progressRepo.addHints(1);
+        _progressRepo.addUndos(1);
+      }
+    } else {
+      _progressRepo.completeLevel(state.levelNumber, state.activeTrack);
 
-    final progress = _progressRepo.getProgress();
-    if (progress.levelsCompletedCount % 2 == 0 && !progress.adsRemoved) {
-      AdService.showInterstitial(adsRemoved: progress.adsRemoved);
+      final progress = _progressRepo.getProgress();
+      if (progress.levelsCompletedCount % 2 == 0 && !progress.adsRemoved) {
+        AdService.showInterstitial(adsRemoved: progress.adsRemoved);
+      }
     }
 
     emit(state.copyWith(phase: GamePhase.levelComplete, score: finalScore));
@@ -525,6 +595,7 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void switchTrack(PuzzleTrack track) {
+    if (state.mode == GameMode.dailyChallenge) return;
     startLevel(state.levelNumber, track);
   }
 

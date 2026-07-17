@@ -34,7 +34,7 @@
     },
     {
       "id": "2:3079320991520534107",
-      "lastPropertyId": "12:157986918661610179",
+      "lastPropertyId": "15:8626051969272955424",
       "name": "PlayerProgress",
       "properties": [
         {
@@ -97,6 +97,21 @@
           "id": "12:157986918661610179",
           "name": "levelsCompletedCount",
           "type": 6
+        },
+        {
+          "id": "13:4024216906167366801",
+          "name": "diagonalRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "14:1963020596690680926",
+          "name": "minDistanceRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "15:8626051969272955424",
+          "name": "knightMoveRuleSeen",
+          "type": 1
         }
       ],
       "relations": []
@@ -134,9 +149,43 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "4:1573346150561790280",
+      "lastPropertyId": "5:8779320624591471531",
+      "name": "DailyChallengeState",
+      "properties": [
+        {
+          "id": "1:6680903058960909970",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4969063995304433250",
+          "name": "lastCompletedDate",
+          "type": 9
+        },
+        {
+          "id": "3:5473270743320550422",
+          "name": "currentChallengeStreak",
+          "type": 6
+        },
+        {
+          "id": "4:1633389027231852844",
+          "name": "longestChallengeStreak",
+          "type": 6
+        },
+        {
+          "id": "5:8779320624591471531",
+          "name": "totalChallengesCompleted",
+          "type": 6
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "3:8181293603307300879",
+  "lastEntityId": "4:1573346150561790280",
   "lastIndexId": "0:0",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",

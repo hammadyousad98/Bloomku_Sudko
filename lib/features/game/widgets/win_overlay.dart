@@ -29,7 +29,8 @@ class _WinOverlayState extends State<WinOverlay> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 2));
     _confettiController.play();
   }
 
@@ -51,13 +52,20 @@ class _WinOverlayState extends State<WinOverlay> {
     }
 
     final minutes = widget.state.elapsed.inMinutes;
-    final seconds = (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds =
+        (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     String trackName = 'Normal';
-    if (widget.state.activeTrack == PuzzleTrack.hard) trackName = 'Hard ×1.5';
-    if (widget.state.activeTrack == PuzzleTrack.ultraHard) trackName = 'Ultra ×2.5';
-    final completedAllLevels = widget.state.levelNumber >= maxLevelCount;
+    if (widget.state.activeTrack == PuzzleTrack.hard) {
+      trackName = 'Hard ×1.5';
+    }
+    if (widget.state.activeTrack == PuzzleTrack.ultraHard) {
+      trackName = 'Ultra ×2.5';
+    }
+    final isDailyChallenge = widget.state.mode == GameMode.dailyChallenge;
+    final completedAllLevels =
+        !isDailyChallenge && widget.state.levelNumber >= maxLevelCount;
 
     return Stack(
       children: [
@@ -177,7 +185,7 @@ class _WinOverlayState extends State<WinOverlay> {
                         ),
                       ),
                     ),
-                    if (!completedAllLevels) ...[
+                    if (!completedAllLevels && !isDailyChallenge) ...[
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(

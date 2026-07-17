@@ -44,8 +44,15 @@ class AppRouter {
           final track = extra is Map<String, Object?>
               ? extra['track'] as String? ?? 'normal'
               : state.uri.queryParameters['track'] ?? 'normal';
+          final isDailyChallenge = extra is Map<String, Object?>
+              ? extra['isDailyChallenge'] as bool? ?? false
+              : state.uri.queryParameters['isDailyChallenge'] == 'true';
 
-          return GameScreen(level: level, track: track);
+          return GameScreen(
+            level: level,
+            track: track,
+            isDailyChallenge: isDailyChallenge,
+          );
         },
       ),
       GoRoute(
@@ -68,6 +75,12 @@ class AppRouter {
 
     if (location == '/game') {
       final extra = state.extra;
+      final isDailyChallenge = extra is Map<String, Object?>
+          ? extra['isDailyChallenge'] as bool? ?? false
+          : state.uri.queryParameters['isDailyChallenge'] == 'true';
+
+      if (isDailyChallenge) return null;
+
       final level = extra is Map<String, Object?>
           ? extra['level'] as int?
           : int.tryParse(state.uri.queryParameters['level'] ?? '');

@@ -12,10 +12,12 @@ import 'package:flat_buffers/flat_buffers.dart' as fb;
 import 'package:objectbox/internal.dart'
     as obx_int; // generated code can access "internal" functionality
 import 'package:objectbox/objectbox.dart' as obx;
+import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
-import '../models/daily_reward_state.dart';
-import '../models/player_progress.dart';
-import '../models/settings_model.dart';
+import '../../data/models/daily_challenge_state.dart';
+import '../../data/models/daily_reward_state.dart';
+import '../../data/models/player_progress.dart';
+import '../../data/models/settings_model.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
@@ -57,7 +59,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(2, 3079320991520534107),
     name: 'PlayerProgress',
-    lastPropertyId: const obx_int.IdUid(12, 157986918661610179),
+    lastPropertyId: const obx_int.IdUid(15, 8626051969272955424),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -132,6 +134,24 @@ final _entities = <obx_int.ModelEntity>[
         type: 6,
         flags: 0,
       ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(13, 4024216906167366801),
+        name: 'diagonalRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(14, 1963020596690680926),
+        name: 'minDistanceRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(15, 8626051969272955424),
+        name: 'knightMoveRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
     ],
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
@@ -176,6 +196,46 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(4, 1573346150561790280),
+    name: 'DailyChallengeState',
+    lastPropertyId: const obx_int.IdUid(5, 8779320624591471531),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 6680903058960909970),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 4969063995304433250),
+        name: 'lastCompletedDate',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 5473270743320550422),
+        name: 'currentChallengeStreak',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 1633389027231852844),
+        name: 'longestChallengeStreak',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 8779320624591471531),
+        name: 'totalChallengesCompleted',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -189,7 +249,7 @@ final _entities = <obx_int.ModelEntity>[
 /// For Flutter apps, also calls `loadObjectBoxLibraryAndroidCompat()` from
 /// the ObjectBox Flutter library to fix loading the native ObjectBox library
 /// on Android 6 and older.
-obx.Store openStore({
+Future<obx.Store> openStore({
   String? directory,
   int? maxDBSizeInKB,
   int? maxDataSizeInKB,
@@ -197,10 +257,11 @@ obx.Store openStore({
   int? maxReaders,
   bool queriesCaseSensitiveDefault = true,
   String? macosApplicationGroup,
-}) {
+}) async {
+  await loadObjectBoxLibraryAndroidCompat();
   return obx.Store(
     getObjectBoxModel(),
-    directory: directory,
+    directory: directory ?? (await defaultStoreDirectory()).path,
     maxDBSizeInKB: maxDBSizeInKB,
     maxDataSizeInKB: maxDataSizeInKB,
     fileMode: fileMode,
@@ -220,7 +281,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(3, 8181293603307300879),
+    lastEntityId: const obx_int.IdUid(4, 1573346150561790280),
     lastIndexId: const obx_int.IdUid(0, 0),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
@@ -286,7 +347,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         object.id = id;
       },
       objectToFB: (PlayerProgress object, fb.Builder fbb) {
-        fbb.startTable(13);
+        fbb.startTable(16);
         fbb.addInt64(0, object.id);
         fbb.addInt64(1, object.normalHighest);
         fbb.addInt64(2, object.hardHighest);
@@ -299,6 +360,9 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addInt64(9, object.lastRuleTutorialLevel);
         fbb.addBool(10, object.adsRemoved);
         fbb.addInt64(11, object.levelsCompletedCount);
+        fbb.addBool(12, object.diagonalRuleSeen);
+        fbb.addBool(13, object.minDistanceRuleSeen);
+        fbb.addBool(14, object.knightMoveRuleSeen);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -358,6 +422,24 @@ obx_int.ModelDefinition getObjectBoxModel() {
             rootOffset,
             26,
             0,
+          )
+          ..diagonalRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            28,
+            false,
+          )
+          ..minDistanceRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            30,
+            false,
+          )
+          ..knightMoveRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            32,
+            false,
           );
 
         return object;
@@ -410,6 +492,58 @@ obx_int.ModelDefinition getObjectBoxModel() {
             rootOffset,
             12,
             false,
+          );
+
+        return object;
+      },
+    ),
+    DailyChallengeState: obx_int.EntityDefinition<DailyChallengeState>(
+      model: _entities[3],
+      toOneRelations: (DailyChallengeState object) => [],
+      toManyRelations: (DailyChallengeState object) => {},
+      getId: (DailyChallengeState object) => object.id,
+      setId: (DailyChallengeState object, int id) {
+        object.id = id;
+      },
+      objectToFB: (DailyChallengeState object, fb.Builder fbb) {
+        final lastCompletedDateOffset = fbb.writeString(
+          object.lastCompletedDate,
+        );
+        fbb.startTable(6);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, lastCompletedDateOffset);
+        fbb.addInt64(2, object.currentChallengeStreak);
+        fbb.addInt64(3, object.longestChallengeStreak);
+        fbb.addInt64(4, object.totalChallengesCompleted);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = DailyChallengeState()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..lastCompletedDate = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..currentChallengeStreak = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            8,
+            0,
+          )
+          ..longestChallengeStreak = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            10,
+            0,
+          )
+          ..totalChallengesCompleted = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            12,
+            0,
           );
 
         return object;
@@ -504,6 +638,21 @@ class PlayerProgress_ {
   static final levelsCompletedCount = obx.QueryIntegerProperty<PlayerProgress>(
     _entities[1].properties[11],
   );
+
+  /// See [PlayerProgress.diagonalRuleSeen].
+  static final diagonalRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[12],
+  );
+
+  /// See [PlayerProgress.minDistanceRuleSeen].
+  static final minDistanceRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[13],
+  );
+
+  /// See [PlayerProgress.knightMoveRuleSeen].
+  static final knightMoveRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[14],
+  );
 }
 
 /// [SettingsModel] entity fields to define ObjectBox queries.
@@ -532,4 +681,29 @@ class SettingsModel_ {
   static final vibrationEnabled = obx.QueryBooleanProperty<SettingsModel>(
     _entities[2].properties[4],
   );
+}
+
+/// [DailyChallengeState] entity fields to define ObjectBox queries.
+class DailyChallengeState_ {
+  /// See [DailyChallengeState.id].
+  static final id = obx.QueryIntegerProperty<DailyChallengeState>(
+    _entities[3].properties[0],
+  );
+
+  /// See [DailyChallengeState.lastCompletedDate].
+  static final lastCompletedDate = obx.QueryStringProperty<DailyChallengeState>(
+    _entities[3].properties[1],
+  );
+
+  /// See [DailyChallengeState.currentChallengeStreak].
+  static final currentChallengeStreak =
+      obx.QueryIntegerProperty<DailyChallengeState>(_entities[3].properties[2]);
+
+  /// See [DailyChallengeState.longestChallengeStreak].
+  static final longestChallengeStreak =
+      obx.QueryIntegerProperty<DailyChallengeState>(_entities[3].properties[3]);
+
+  /// See [DailyChallengeState.totalChallengesCompleted].
+  static final totalChallengesCompleted =
+      obx.QueryIntegerProperty<DailyChallengeState>(_entities[3].properties[4]);
 }

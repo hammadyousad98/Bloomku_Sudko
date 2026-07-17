@@ -8,6 +8,7 @@ import '../../core/constants/ad_constants.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/repositories/progress_repository.dart';
+import '../../data/repositories/daily_challenge_repository.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../core/utils/puzzle_generator.dart';
 import '../tutorial/tutorial_cubit.dart';
@@ -27,8 +28,14 @@ import '../../widgets/ads/banner_ad_widget.dart';
 class GameScreen extends StatefulWidget {
   final int level;
   final String track;
+  final bool isDailyChallenge;
 
-  const GameScreen({super.key, required this.level, required this.track});
+  const GameScreen({
+    super.key,
+    required this.level,
+    required this.track,
+    this.isDailyChallenge = false,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -43,15 +50,20 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     final progressRepo = GetIt.I<ProgressRepository>();
     final settingsRepo = GetIt.I<SettingsRepository>();
-    _cubit = GameCubit(progressRepo, settingsRepo);
+    final dailyChallengeRepo = GetIt.I<DailyChallengeRepository>();
+    _cubit = GameCubit(progressRepo, settingsRepo, dailyChallengeRepo);
 
-    final pTrack = widget.track.toLowerCase() == 'hard'
-        ? PuzzleTrack.hard
-        : (widget.track.toLowerCase() == 'ultra'
-            ? PuzzleTrack.ultraHard
-            : PuzzleTrack.normal);
+    if (widget.isDailyChallenge) {
+      _cubit.startDailyChallenge();
+    } else {
+      final pTrack = widget.track.toLowerCase() == 'hard'
+          ? PuzzleTrack.hard
+          : (widget.track.toLowerCase() == 'ultra'
+              ? PuzzleTrack.ultraHard
+              : PuzzleTrack.normal);
 
-    _cubit.startLevel(widget.level, pTrack);
+      _cubit.startLevel(widget.level, pTrack);
+    }
     AudioService.playGameMusic();
     AdService.isInGame = true;
   }
@@ -68,6 +80,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startNextLevel() {
+    if (_cubit.state.mode == GameMode.dailyChallenge) {
+      _goToMenu();
+      return;
+    }
+
     final nextLevel = _cubit.state.levelNumber + 1;
     if (nextLevel > maxLevelCount) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +97,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _restartLevel() {
-    _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack);
+    if (_cubit.state.mode == GameMode.dailyChallenge) {
+      _cubit.startDailyChallenge();
+    } else {
+      _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack);
+    }
   }
 
   void _showPendingTutorials(GameState state) {
@@ -143,10 +164,7 @@ class _GameScreenState extends State<GameScreen> {
                 return _GenerationErrorView(
                   message: state.statusMessage ??
                       "Couldn't generate this level. Please try again.",
-                  onRetry: () => _cubit.startLevel(
-                    state.levelNumber,
-                    state.activeTrack,
-                  ),
+                  onRetry: _restartLevel,
                   onMenu: _goToMenu,
                 );
               }
