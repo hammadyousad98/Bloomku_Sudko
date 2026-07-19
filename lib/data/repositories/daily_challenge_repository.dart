@@ -39,14 +39,15 @@ class DailyChallengeRepository {
     return state.lastCompletedDate == today;
   }
 
-  /// Records today's completion once and updates challenge streak counters.
-  void markCompletedToday() {
+  /// Records today's completion and returns its repeating seven-day bonus.
+  /// Returns null when today was already completed or no bonus is configured.
+  DailyReward? markCompletedToday() {
     final state = getState();
     final now = DateTime.now();
     final today = DateFormat('yyyy-MM-dd').format(now);
 
     // Replays on the same local calendar day must not affect counters.
-    if (state.lastCompletedDate == today) return;
+    if (state.lastCompletedDate == today) return null;
 
     final yesterday = DateFormat(
       'yyyy-MM-dd',
@@ -66,5 +67,11 @@ class DailyChallengeRepository {
     state.lastCompletedDate = today;
 
     _box.put(state);
+
+    final rewardDay = ((state.currentChallengeStreak - 1) % 7) + 1;
+    for (final reward in kDailyChallengeStreakRewards) {
+      if (reward.day == rewardDay) return reward;
+    }
+    return null;
   }
 }

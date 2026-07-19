@@ -30,6 +30,10 @@ final class DailyChallengeNotPlayed extends DailyChallengeCubitState {
   List<Object?> get props => [
         challenge.level,
         challenge.track,
+        challenge.hintReward,
+        challenge.bulbReward,
+        challenge.undoReward,
+        challenge.extraLifeReward,
         currentChallengeStreak,
       ];
 }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../core/utils/daily_challenge_config.dart';
 import '../../../core/utils/puzzle_generator.dart';
 
 enum GamePhase {
@@ -30,6 +31,7 @@ class GameState extends Equatable {
   final PuzzleTrack activeTrack;
   final int levelNumber;
   final GameMode mode;
+  final DailyChallengeDay? activeDailyDay;
   final bool showDifficultyBar;
   final bool showUltraTab;
   final List<int> moveHistory;
@@ -56,6 +58,7 @@ class GameState extends Equatable {
     required this.activeTrack,
     required this.levelNumber,
     this.mode = GameMode.progression,
+    this.activeDailyDay,
     required this.showDifficultyBar,
     required this.showUltraTab,
     required this.moveHistory,
@@ -83,6 +86,8 @@ class GameState extends Equatable {
     PuzzleTrack? activeTrack,
     int? levelNumber,
     GameMode? mode,
+    DailyChallengeDay? activeDailyDay,
+    bool clearActiveDailyDay = false,
     bool? showDifficultyBar,
     bool? showUltraTab,
     List<int>? moveHistory,
@@ -109,6 +114,8 @@ class GameState extends Equatable {
       activeTrack: activeTrack ?? this.activeTrack,
       levelNumber: levelNumber ?? this.levelNumber,
       mode: mode ?? this.mode,
+      activeDailyDay:
+          clearActiveDailyDay ? null : activeDailyDay ?? this.activeDailyDay,
       showDifficultyBar: showDifficultyBar ?? this.showDifficultyBar,
       showUltraTab: showUltraTab ?? this.showUltraTab,
       moveHistory: moveHistory ?? this.moveHistory,
@@ -139,6 +146,7 @@ class GameState extends Equatable {
         activeTrack,
         levelNumber,
         mode,
+        activeDailyDay,
         showDifficultyBar,
         showUltraTab,
         moveHistory,

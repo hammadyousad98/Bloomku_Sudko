@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/daily_challenge_config.dart';
 import '../../core/utils/puzzle_generator.dart';
 import '../../data/repositories/daily_challenge_repository.dart';
 import '../game/widgets/rules_panel.dart';
@@ -206,7 +207,8 @@ class _NotPlayedContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Text(
-                      'Complete it today to earn +1 hint and +1 undo.',
+                      'Complete it today to earn '
+                      '${_completionRewardText(state.challenge)}.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: theme.textSecondary,
@@ -510,4 +512,22 @@ String _formatCountdown(Duration duration) {
   final minutes = (safeDuration.inMinutes % 60).toString().padLeft(2, '0');
   final seconds = (safeDuration.inSeconds % 60).toString().padLeft(2, '0');
   return '$hours:$minutes:$seconds';
+}
+
+String _completionRewardText(DailyChallengeDay day) {
+  final rewards = <String>[
+    if (day.hintReward > 0)
+      '+${day.hintReward} ${day.hintReward == 1 ? 'hint' : 'hints'}',
+    if (day.bulbReward > 0)
+      '+${day.bulbReward} ${day.bulbReward == 1 ? 'bulb' : 'bulbs'}',
+    if (day.undoReward > 0)
+      '+${day.undoReward} ${day.undoReward == 1 ? 'undo' : 'undos'}',
+    if (day.extraLifeReward > 0)
+      '+${day.extraLifeReward} '
+          '${day.extraLifeReward == 1 ? 'extra life' : 'extra lives'}',
+  ];
+
+  if (rewards.length == 1) return rewards.single;
+  if (rewards.length == 2) return '${rewards.first} and ${rewards.last}';
+  return '${rewards.take(rewards.length - 1).join(', ')}, and ${rewards.last}';
 }

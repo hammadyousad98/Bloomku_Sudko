@@ -73,6 +73,7 @@ class GameCubit extends Cubit<GameState> {
       config.level,
       config.track,
       mode: GameMode.dailyChallenge,
+      dailyDay: config,
     );
   }
 
@@ -80,6 +81,7 @@ class GameCubit extends Cubit<GameState> {
     int levelNumber,
     PuzzleTrack track, {
     GameMode mode = GameMode.progression,
+    DailyChallengeDay? dailyDay,
   }) async {
     _timer?.cancel();
     final token = ++_generationToken;
@@ -87,6 +89,7 @@ class GameCubit extends Cubit<GameState> {
     var effectiveLevel = levelNumber;
     var effectiveTrack = track;
     var config = PuzzleGenerator.configForLevel(levelNumber, track);
+    var resolvedDailyDay = dailyDay;
     String? fallbackStatusMessage;
     final isDailyChallenge = mode == GameMode.dailyChallenge;
 
@@ -94,6 +97,8 @@ class GameCubit extends Cubit<GameState> {
       state.copyWith(
         phase: GamePhase.loading,
         mode: mode,
+        activeDailyDay: resolvedDailyDay,
+        clearActiveDailyDay: !isDailyChallenge,
         activeTrack: track,
         levelNumber: levelNumber,
         showDifficultyBar: !isDailyChallenge && levelNumber >= 15,
@@ -140,7 +145,13 @@ class GameCubit extends Cubit<GameState> {
     }
 
     if (!puzzle.isValid && isDailyChallenge) {
-      const fallbackDay = DailyChallengeDay(38, PuzzleTrack.ultraHard);
+      const fallbackDay = DailyChallengeDay(
+        38,
+        PuzzleTrack.ultraHard,
+        hintReward: 3,
+        bulbReward: 2,
+        undoReward: 2,
+      );
       final fallbackConfig = PuzzleGenerator.configForLevel(
         fallbackDay.level,
         fallbackDay.track,
@@ -164,6 +175,7 @@ class GameCubit extends Cubit<GameState> {
       if (puzzle.isValid) {
         effectiveLevel = fallbackDay.level;
         effectiveTrack = fallbackDay.track;
+        resolvedDailyDay = fallbackDay;
         config = fallbackConfig;
         fallbackStatusMessage =
             "Today's puzzle needed a smaller board on this device — "
@@ -228,6 +240,8 @@ class GameCubit extends Cubit<GameState> {
         bulbCount: progress.bulbs,
         extraLiveCount: progress.extraLives,
         mode: mode,
+        activeDailyDay: resolvedDailyDay,
+        clearActiveDailyDay: !isDailyChallenge,
         activeTrack: effectiveTrack,
         levelNumber: effectiveLevel,
         showDifficultyBar: !isDailyChallenge && effectiveLevel >= 15,
@@ -459,9 +473,35 @@ class GameCubit extends Cubit<GameState> {
 
     if (state.mode == GameMode.dailyChallenge) {
       if (!_dailyChallengeRepo.hasCompletedToday()) {
-        _dailyChallengeRepo.markCompletedToday();
-        _progressRepo.addHints(1);
-        _progressRepo.addUndos(1);
+        final dailyDay = state.activeDailyDay!;
+        if (dailyDay.hintReward > 0) {
+          _progressRepo.addHints(dailyDay.hintReward);
+        }
+        if (dailyDay.bulbReward > 0) {
+          _progressRepo.addBulbs(dailyDay.bulbReward);
+        }
+        if (dailyDay.undoReward > 0) {
+          _progressRepo.addUndos(dailyDay.undoReward);
+        }
+        if (dailyDay.extraLifeReward > 0) {
+          _progressRepo.addExtraLives(dailyDay.extraLifeReward);
+        }
+
+        final streakReward = _dailyChallengeRepo.markCompletedToday();
+        if (streakReward != null) {
+          if (streakReward.hints > 0) {
+            _progressRepo.addHints(streakReward.hints);
+          }
+          if (streakReward.bulbs > 0) {
+            _progressRepo.addBulbs(streakReward.bulbs);
+          }
+          if (streakReward.undos > 0) {
+            _progressRepo.addUndos(streakReward.undos);
+          }
+          if (streakReward.extraLives > 0) {
+            _progressRepo.addExtraLives(streakReward.extraLives);
+          }
+        }
       }
     } else {
       _progressRepo.completeLevel(state.levelNumber, state.activeTrack);
