@@ -12,6 +12,7 @@ import '../../core/theme/theme_model.dart';
 import '../../widgets/common/themed_icon.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/reward_repository.dart';
+import '../../data/repositories/settings_repository.dart';
 import 'main_menu_cubit.dart';
 
 import '../../services/audio_service.dart';
@@ -28,7 +29,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
   void initState() {
     super.initState();
-    AudioService.playMenuMusic();
+    final initialThemeIndex = sl<SettingsRepository>().selectedThemeIndex;
+    AudioService.playMenuMusic(initialThemeIndex);
   }
 
   @override

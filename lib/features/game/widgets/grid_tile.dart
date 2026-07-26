@@ -12,6 +12,8 @@ class GridTileWidget extends StatelessWidget {
   final VoidCallback onDoubleTap;
   final bool hasError;
   final bool hasHint;
+  final bool isHintRowCol;
+  final bool hasMineExplosion;
 
   const GridTileWidget({
     super.key,
@@ -22,6 +24,8 @@ class GridTileWidget extends StatelessWidget {
     required this.onDoubleTap,
     this.hasError = false,
     this.hasHint = false,
+    this.isHintRowCol = false,
+    this.hasMineExplosion = false,
   });
 
   @override
@@ -37,14 +41,16 @@ class GridTileWidget extends StatelessWidget {
         break;
       case TileState.marker:
         child = Center(
-          child: const Text(
-            "×",
-            style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.black54),
-          ).animate().fadeIn(duration: 150.ms),
-        );
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Icon(
+                Icons.close_rounded,
+                size: constraints.maxWidth * 0.4,
+                color: theme.textPrimary.withValues(alpha: 0.5),
+              );
+            },
+          ),
+        ).animate().fadeIn(duration: 150.ms);
         break;
       case TileState.object:
         child = Center(
@@ -93,20 +99,32 @@ class GridTileWidget extends StatelessWidget {
         break;
     }
 
+    final hintBaseColor = theme.textPrimary;
+    Color bgColor = backgroundColor;
+    
+    if (hasHint) {
+      bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.25), bgColor);
+    } else if (isHintRowCol) {
+      bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.15), bgColor);
+    }
+
     Widget tile = GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: hasError ? Colors.red.withValues(alpha: 0.8) : backgroundColor,
+          color: (hasError || hasMineExplosion) ? Colors.red.withValues(alpha: 0.8) : bgColor,
           borderRadius: BorderRadius.circular(10),
-          border:
-              hasHint ? Border.all(color: Colors.amberAccent, width: 3) : null,
+          border: hasHint
+              ? Border.all(color: hintBaseColor, width: 3)
+              : (isHintRowCol
+                  ? Border.all(color: hintBaseColor.withValues(alpha: 0.4), width: 1.5)
+                  : null),
           boxShadow: hasHint
               ? [
                   BoxShadow(
-                    color: Colors.amberAccent.withValues(alpha: 0.55),
+                    color: hintBaseColor.withValues(alpha: 0.4),
                     blurRadius: 10,
                     spreadRadius: 1,
                   ),
@@ -117,7 +135,12 @@ class GridTileWidget extends StatelessWidget {
       ),
     );
 
-    if (hasError) {
+    if (hasMineExplosion) {
+      tile = tile
+          .animate(onComplete: (c) => c.reverse())
+          .tint(color: Colors.red, duration: 250.ms)
+          .then(delay: 500.ms);
+    } else if (hasError) {
       tile = tile
           .animate(onComplete: (c) => c.reverse())
           .tint(color: Colors.red, duration: 150.ms)

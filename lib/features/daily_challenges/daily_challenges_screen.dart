@@ -519,7 +519,7 @@ String _completionRewardText(DailyChallengeDay day) {
     if (day.hintReward > 0)
       '+${day.hintReward} ${day.hintReward == 1 ? 'hint' : 'hints'}',
     if (day.bulbReward > 0)
-      '+${day.bulbReward} ${day.bulbReward == 1 ? 'bulb' : 'bulbs'}',
+      '+${day.bulbReward} ${day.bulbReward == 1 ? 'row solve' : 'row solves'}',
     if (day.undoReward > 0)
       '+${day.undoReward} ${day.undoReward == 1 ? 'undo' : 'undos'}',
     if (day.extraLifeReward > 0)

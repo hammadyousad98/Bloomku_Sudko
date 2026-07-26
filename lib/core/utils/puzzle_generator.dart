@@ -169,11 +169,7 @@ class PuzzleGenerator {
 
   static int gridSizeForLevel(int level, PuzzleTrack track) {
     int baseSize = 2;
-    if (level == 1) {
-      baseSize = 2;
-    } else if (level == 2) {
-      baseSize = 3;
-    } else if (level <= 5) {
+    if (level <= 5) {
       baseSize = 4;
     } else if (level <= 8) {
       baseSize = 5;

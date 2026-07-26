@@ -34,8 +34,8 @@ class BottomButtons extends StatelessWidget {
             onTap: onHintTap,
           ),
           _ActionButton(
-            label: "Bulb",
-            icon: Icons.flare,
+            label: "Solve Row",
+            icon: Icons.auto_fix_high,
             color: Colors.purple,
             count: bulbCount,
             onTap: onBulbTap,

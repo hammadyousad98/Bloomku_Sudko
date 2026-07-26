@@ -8,6 +8,7 @@ class ProgressRow extends StatelessWidget {
   final int lives;
   final int score;
   final String timerText;
+  final List<GlobalKey> heartKeys;
 
   const ProgressRow({
     super.key,
@@ -16,6 +17,7 @@ class ProgressRow extends StatelessWidget {
     required this.lives,
     required this.score,
     required this.timerText,
+    required this.heartKeys,
   });
 
   @override
@@ -48,6 +50,7 @@ class ProgressRow extends StatelessWidget {
             children: List.generate(3, (index) {
               return Icon(
                 index < lives ? Icons.favorite : Icons.favorite_border,
+                key: index < heartKeys.length ? heartKeys[index] : null,
                 color: Colors.red,
                 size: 20,
               );

@@ -40,6 +40,12 @@ class GameState extends Equatable {
   final int? errorTileIndex;
   final int? hintTileIndex;
   final List<String> pendingRuleTutorials;
+  final String? rewardMessage;
+  final int? mineTileIndex;
+  final List<int>? tutorialHighlightIndexes;
+  final int lifeLostToken;
+  final int? lifeLostTileIndex;
+  final int? lifeLostTargetHeartIndex;
 
   const GameState({
     required this.phase,
@@ -67,6 +73,12 @@ class GameState extends Equatable {
     this.errorTileIndex,
     this.hintTileIndex,
     this.pendingRuleTutorials = const [],
+    this.rewardMessage,
+    this.mineTileIndex,
+    this.tutorialHighlightIndexes,
+    this.lifeLostToken = 0,
+    this.lifeLostTileIndex,
+    this.lifeLostTargetHeartIndex,
   });
 
   GameState copyWith({
@@ -96,6 +108,14 @@ class GameState extends Equatable {
     int? errorTileIndex,
     int? hintTileIndex,
     List<String>? pendingRuleTutorials,
+    String? rewardMessage,
+    bool clearRewardMessage = false,
+    int? mineTileIndex,
+    List<int>? tutorialHighlightIndexes,
+    bool clearTutorialHighlightIndexes = false,
+    int? lifeLostToken,
+    int? lifeLostTileIndex,
+    int? lifeLostTargetHeartIndex,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -125,6 +145,15 @@ class GameState extends Equatable {
           errorTileIndex, // Allow clearing by not defaulting to this.
       hintTileIndex: hintTileIndex, // Allow clearing by not defaulting to this.
       pendingRuleTutorials: pendingRuleTutorials ?? this.pendingRuleTutorials,
+      rewardMessage:
+          clearRewardMessage ? null : rewardMessage ?? this.rewardMessage,
+      mineTileIndex: mineTileIndex, // Allow clearing by not defaulting
+      tutorialHighlightIndexes: clearTutorialHighlightIndexes
+          ? null
+          : tutorialHighlightIndexes ?? this.tutorialHighlightIndexes,
+      lifeLostToken: lifeLostToken ?? this.lifeLostToken,
+      lifeLostTileIndex: lifeLostTileIndex, // Allow clearing
+      lifeLostTargetHeartIndex: lifeLostTargetHeartIndex, // Allow clearing
     );
   }
 
@@ -155,5 +184,11 @@ class GameState extends Equatable {
         errorTileIndex,
         hintTileIndex,
         pendingRuleTutorials,
+        rewardMessage,
+        mineTileIndex,
+        tutorialHighlightIndexes,
+        lifeLostToken,
+        lifeLostTileIndex,
+        lifeLostTargetHeartIndex,
       ];
 }

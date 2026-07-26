@@ -41,6 +41,13 @@ class PlayerProgress {
   /// Whether the knight-move rule tutorial has been shown
   bool knightMoveRuleSeen = false;
 
+  /// Whether the landmine rule tutorial has been shown
+  bool mineRuleSeen = false;
+
+  bool rowColumnRuleSeen = false;
+  bool colorRegionRuleSeen = false;
+  bool noTouchRuleSeen = false;
+
   /// Master ad-removal switch. When true, all ads are suppressed: both Game
   /// banner placements and the interstitial gate in GameCubit._onLevelComplete.
   ///

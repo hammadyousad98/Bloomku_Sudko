@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/constants/quotes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_model.dart';
 import '../cubit/game_state.dart';
 
-class GameOverOverlay extends StatelessWidget {
+class GameOverOverlay extends StatefulWidget {
   final GameState state;
   final VoidCallback onWatchAdForLife;
   final VoidCallback onGiveUp;
@@ -19,6 +20,13 @@ class GameOverOverlay extends StatelessWidget {
     required this.onTryAgain,
     required this.onMenu,
   });
+
+  @override
+  State<GameOverOverlay> createState() => _GameOverOverlayState();
+}
+
+class _GameOverOverlayState extends State<GameOverOverlay> {
+  late final String _quote = (List.of(loseQuotes)..shuffle()).first;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +50,7 @@ class GameOverOverlay extends StatelessWidget {
             ),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: state.phase == GamePhase.reviveOffer
+              child: widget.state.phase == GamePhase.reviveOffer
                   ? _buildReviveCard(context, theme)
                   : _buildGameOverCard(context, theme),
             ),
@@ -83,7 +91,7 @@ class GameOverOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         ElevatedButton(
-          onPressed: onWatchAdForLife,
+          onPressed: widget.onWatchAdForLife,
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.accentColor,
             foregroundColor: Colors.white,
@@ -100,7 +108,7 @@ class GameOverOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: onGiveUp,
+          onPressed: widget.onGiveUp,
           style: TextButton.styleFrom(
             foregroundColor: theme.textSecondary,
             minimumSize: const Size(double.infinity, 48),
@@ -112,8 +120,8 @@ class GameOverOverlay extends StatelessWidget {
   }
 
   Widget _buildGameOverCard(BuildContext context, AppThemeData theme) {
-    final minutes = state.elapsed.inMinutes;
-    final seconds = (state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final minutes = widget.state.elapsed.inMinutes;
+    final seconds = (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     return Column(
@@ -132,7 +140,7 @@ class GameOverOverlay extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Text(
-          "${state.score}",
+          "${widget.state.score}",
           style: TextStyle(
             fontSize: 48,
             fontWeight: FontWeight.bold,
@@ -147,12 +155,22 @@ class GameOverOverlay extends StatelessWidget {
             color: theme.textSecondary,
           ),
         ),
+        const SizedBox(height: 24),
+        Text(
+          _quote,
+          style: TextStyle(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            color: theme.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
         const SizedBox(height: 32),
         Row(
           children: [
             Expanded(
               child: ElevatedButton(
-                onPressed: onMenu,
+                onPressed: widget.onMenu,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.cardColor,
                   foregroundColor: theme.textPrimary,
@@ -173,7 +191,7 @@ class GameOverOverlay extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: onTryAgain,
+                onPressed: widget.onTryAgain,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.accentColor,
                   foregroundColor: Colors.white,

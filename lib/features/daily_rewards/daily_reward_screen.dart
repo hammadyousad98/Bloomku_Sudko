@@ -502,7 +502,7 @@ class _TomorrowPreview extends StatelessWidget {
       parts.add('↩️ ${tomorrow.undos} Undo${tomorrow.undos > 1 ? "s" : ""}');
     }
     if (tomorrow.bulbs > 0) {
-      parts.add('🌟 ${tomorrow.bulbs} Bulb${tomorrow.bulbs > 1 ? "s" : ""}');
+      parts.add('🌟 ${tomorrow.bulbs} Row Solve${tomorrow.bulbs > 1 ? "s" : ""}');
     }
 
     return Container(
@@ -567,7 +567,7 @@ class _ClaimCelebration extends StatelessWidget {
       parts.add('↩️ +${reward.undos} Undo${reward.undos > 1 ? "s" : ""}');
     }
     if (reward.bulbs > 0) {
-      parts.add('🌟 +${reward.bulbs} Bulb${reward.bulbs > 1 ? "s" : ""}');
+      parts.add('🌟 +${reward.bulbs} Row Solve${reward.bulbs > 1 ? "s" : ""}');
     }
 
     return Container(

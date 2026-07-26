@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/quotes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_model.dart';
 import '../cubit/game_state.dart';
@@ -25,6 +26,7 @@ class WinOverlay extends StatefulWidget {
 
 class _WinOverlayState extends State<WinOverlay> {
   late ConfettiController _confettiController;
+  late final String _quote = (List.of(winQuotes)..shuffle()).first;
 
   @override
   void initState() {
@@ -78,13 +80,13 @@ class _WinOverlayState extends State<WinOverlay> {
         Center(
           child: Container(
             width: 360,
-            height: 460,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(28),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
@@ -149,6 +151,16 @@ class _WinOverlayState extends State<WinOverlay> {
                         );
                   }),
                 ),
+                const SizedBox(height: 24),
+                Text(
+                  _quote,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: theme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ).animate().fadeIn(delay: 800.ms, duration: 400.ms),
                 const SizedBox(height: 32),
                 if (completedAllLevels) ...[
                   Text(

@@ -124,4 +124,33 @@ class TutorialCubit extends Cubit<TutorialState> {
           "From level 80, each [objectName] also blocks the cells a chess knight can jump to. The L-shaped move adds a surprising new layer to every puzzle.",
     );
   }
+
+  static TutorialSlide getMineRule() {
+    return const TutorialSlide(
+      title: "Watch Your Step!",
+      body:
+          "Ultra Hard boards can hide landmines. Stepping on one costs extra lives — you won't know where they are until it's too late, so place carefully.",
+    );
+  }
+
+  static TutorialSlide getRowColumnRule() {
+    return const TutorialSlide(
+      title: "Row & Column Rule",
+      body: "Only one [objectName] per row, and only one per column.",
+    );
+  }
+
+  static TutorialSlide getColorRegionRule() {
+    return const TutorialSlide(
+      title: "Color Region Rule",
+      body: "Only one [objectName] per colored region.",
+    );
+  }
+
+  static TutorialSlide getNoTouchRule() {
+    return const TutorialSlide(
+      title: "No Touching Rule",
+      body: "Flowers can't touch each other — not even diagonally.",
+    );
+  }
 }

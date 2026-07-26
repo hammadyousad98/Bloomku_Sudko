@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../services/audio_service.dart';
+import '../../services/ad_service.dart';
 import 'theme_model.dart';
 
 class ThemeCubit extends Cubit<AppThemeData> {
@@ -18,5 +20,9 @@ class ThemeCubit extends Cubit<AppThemeData> {
   void selectTheme(int index) {
     _settingsRepo.selectedThemeIndex = index;
     emit(BloomkuThemes.byIndex(index));
+    
+    if (!AdService.isInGame) {
+      AudioService.playMenuMusic(index);
+    }
   }
 }

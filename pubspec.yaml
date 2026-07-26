@@ -1,7 +1,7 @@
 name: zendoku
 description: "A new Flutter project."
 publish_to: 'none'
-version: 1.0.3+3
+version: 1.0.5+5
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -54,6 +54,11 @@ flutter:
   assets:
     - assets/icons/
     - assets/audio/music/
+    - assets/audio/music/Blossom/
+    - assets/audio/music/Ocean/
+    - assets/audio/music/Forest/
+    - assets/audio/music/Cosmos/
+    - assets/audio/music/Peach/
     - assets/audio/sfx/
     - assets/fonts/
   fonts:

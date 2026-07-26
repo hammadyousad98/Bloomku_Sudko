@@ -184,4 +184,32 @@ class ProgressRepository {
     progress.knightMoveRuleSeen = true;
     saveProgress(progress);
   }
+
+  bool hasSeenMineRule() => getProgress().mineRuleSeen;
+  void markMineRuleSeen() {
+    final progress = getProgress();
+    progress.mineRuleSeen = true;
+    saveProgress(progress);
+  }
+
+  bool hasSeenRowColumnRule() => getProgress().rowColumnRuleSeen;
+  void markRowColumnRuleSeen() {
+    final progress = getProgress();
+    progress.rowColumnRuleSeen = true;
+    saveProgress(progress);
+  }
+
+  bool hasSeenColorRegionRule() => getProgress().colorRegionRuleSeen;
+  void markColorRegionRuleSeen() {
+    final progress = getProgress();
+    progress.colorRegionRuleSeen = true;
+    saveProgress(progress);
+  }
+
+  bool hasSeenNoTouchRule() => getProgress().noTouchRuleSeen;
+  void markNoTouchRuleSeen() {
+    final progress = getProgress();
+    progress.noTouchRuleSeen = true;
+    saveProgress(progress);
+  }
 }

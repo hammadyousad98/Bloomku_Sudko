@@ -25,6 +25,8 @@ class GameCubit extends Cubit<GameState> {
   final SettingsRepository _settingsRepo;
   final DailyChallengeRepository _dailyChallengeRepo;
 
+  final Map<PuzzleTrack, _InProgressSnapshot> _trackSnapshots = {};
+
   static const Duration _generationTimeout = Duration(seconds: 5);
 
   Timer? _timer;
@@ -63,8 +65,11 @@ class GameCubit extends Cubit<GameState> {
     return super.close();
   }
 
-  Future<void> startLevel(int levelNumber, PuzzleTrack track) async {
-    await _startLevelInternal(levelNumber, track);
+  Future<void> startLevel(int levelNumber, PuzzleTrack track, {bool forceRestart = false}) async {
+    if (forceRestart) {
+      _trackSnapshots.remove(track);
+    }
+    await _startLevelInternal(levelNumber, track, forceRestart: forceRestart);
   }
 
   Future<void> startDailyChallenge() async {
@@ -82,6 +87,7 @@ class GameCubit extends Cubit<GameState> {
     PuzzleTrack track, {
     GameMode mode = GameMode.progression,
     DailyChallengeDay? dailyDay,
+    bool forceRestart = false,
   }) async {
     _timer?.cancel();
     final token = ++_generationToken;
@@ -194,12 +200,30 @@ class GameCubit extends Cubit<GameState> {
     }
 
     final gridSize = puzzle.gridSize;
-    final List<TileState> states = List.filled(
+    List<TileState> states = List.filled(
       gridSize * gridSize,
       TileState.empty,
     );
     for (int index in puzzle.lockedIndexes) {
       states[index] = TileState.lockedObject;
+    }
+
+    int currentPlacedCount = puzzle.lockedIndexes.length;
+    int currentLives = 3;
+    Duration currentElapsed = Duration.zero;
+    List<int> currentMoveHistory = [];
+
+    if (!forceRestart && !isDailyChallenge) {
+      final snapshot = _trackSnapshots[effectiveTrack];
+      if (snapshot != null && snapshot.levelNumber == effectiveLevel) {
+        if (snapshot.tileStates.length == states.length) {
+          states = List.from(snapshot.tileStates);
+          currentPlacedCount = snapshot.placedCount;
+          currentMoveHistory = List.from(snapshot.moveHistory);
+          currentLives = snapshot.livesRemaining;
+          currentElapsed = snapshot.elapsed;
+        }
+      }
     }
 
     final progress = _progressRepo.getProgress();
@@ -224,17 +248,36 @@ class GameCubit extends Cubit<GameState> {
       _progressRepo.markKnightMoveRuleSeen();
       pending.add('knightMove');
     }
+    if (puzzle.mineIndexes.isNotEmpty && !_progressRepo.hasSeenMineRule()) {
+      _progressRepo.markMineRuleSeen();
+      pending.add('mine');
+    }
+
+    if (effectiveTrack == PuzzleTrack.normal) {
+      if (effectiveLevel == 1 && !_progressRepo.hasSeenRowColumnRule()) {
+        _progressRepo.markRowColumnRuleSeen();
+        pending.add('rowColumn');
+      }
+      if (effectiveLevel == 2 && !_progressRepo.hasSeenColorRegionRule()) {
+        _progressRepo.markColorRegionRuleSeen();
+        pending.add('colorRegion');
+      }
+      if (effectiveLevel == 3 && !_progressRepo.hasSeenNoTouchRule()) {
+        _progressRepo.markNoTouchRuleSeen();
+        pending.add('noTouch');
+      }
+    }
 
     emit(
       state.copyWith(
         phase: GamePhase.playing,
         puzzle: puzzle,
         tileStates: states,
-        placedCount: puzzle.lockedIndexes.length,
+        placedCount: currentPlacedCount,
         targetCount: gridSize,
-        livesRemaining: 3,
+        livesRemaining: currentLives,
         maxLives: 3,
-        elapsed: Duration.zero,
+        elapsed: currentElapsed,
         hintCount: progress.hints,
         undoCount: progress.undos,
         bulbCount: progress.bulbs,
@@ -246,12 +289,17 @@ class GameCubit extends Cubit<GameState> {
         levelNumber: effectiveLevel,
         showDifficultyBar: !isDailyChallenge && effectiveLevel >= 15,
         showUltraTab: !isDailyChallenge && effectiveLevel > 30,
-        moveHistory: [],
+        moveHistory: currentMoveHistory,
         statusMessage: fallbackStatusMessage,
         showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
         pendingRuleTutorials: pending,
         errorTileIndex: null,
         hintTileIndex: null,
+        mineTileIndex: null,
+        clearTutorialHighlightIndexes: true,
+        lifeLostToken: 0,
+        lifeLostTileIndex: null,
+        lifeLostTargetHeartIndex: null,
       ),
     );
 
@@ -266,15 +314,58 @@ class GameCubit extends Cubit<GameState> {
 
   /// Called by the UI after showing a rule tutorial dialog.
   /// Removes the first pending tutorial; when list is empty the game starts.
-  void dismissNextRuleTutorial() {
+  void dismissNextRuleTutorial(String completedRule) {
     final remaining = List<String>.from(state.pendingRuleTutorials);
     if (remaining.isNotEmpty) remaining.removeAt(0);
+
+    List<int>? highlightIndexes;
+    if (completedRule == 'rowColumn') {
+      highlightIndexes = [];
+      // Briefly outline row 0 and column 0 (which have an intersecting flower)
+      for (int i = 0; i < state.puzzle.gridSize; i++) {
+        highlightIndexes.add(i); // row 0
+        highlightIndexes.add(i * state.puzzle.gridSize); // col 0
+      }
+    } else if (completedRule == 'colorRegion') {
+      highlightIndexes = [];
+      // Briefly pulse color 0
+      for (int i = 0; i < state.tileStates.length; i++) {
+        if (state.puzzle.colorMap[i] == 0) highlightIndexes.add(i);
+      }
+    } else if (completedRule == 'noTouch') {
+      highlightIndexes = [];
+      if (state.puzzle.lockedIndexes.isNotEmpty) {
+        int locked = state.puzzle.lockedIndexes.first;
+        int gridSize = state.puzzle.gridSize;
+        int lr = locked ~/ gridSize;
+        int lc = locked % gridSize;
+        for (int r = lr - 1; r <= lr + 1; r++) {
+          for (int c = lc - 1; c <= lc + 1; c++) {
+            if (r >= 0 && r < gridSize && c >= 0 && c < gridSize) {
+              if (!(r == lr && c == lc)) {
+                highlightIndexes.add(r * gridSize + c);
+              }
+            }
+          }
+        }
+      }
+    }
+
     emit(
       state.copyWith(
         pendingRuleTutorials: remaining,
         showRuleTutorial: remaining.isNotEmpty,
+        tutorialHighlightIndexes: highlightIndexes,
       ),
     );
+
+    if (highlightIndexes != null && highlightIndexes.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!isClosed) {
+          emit(state.copyWith(clearTutorialHighlightIndexes: true));
+        }
+      });
+    }
   }
 
   void onTileSingleTap(int index) {
@@ -300,6 +391,7 @@ class GameCubit extends Cubit<GameState> {
         tileStates: currentStates,
         errorTileIndex: null,
         hintTileIndex: null,
+        mineTileIndex: null,
       ),
     );
   }
@@ -332,6 +424,7 @@ class GameCubit extends Cubit<GameState> {
             moveHistory: newHistory,
             errorTileIndex: null,
             hintTileIndex: null,
+            mineTileIndex: null,
           ),
         );
 
@@ -340,29 +433,73 @@ class GameCubit extends Cubit<GameState> {
         }
       } else {
         // Invalid placement
-        AudioService.playError();
-        if (_settingsRepo.vibrationEnabled) {
-          unawaited(HapticFeedback.heavyImpact());
-        }
-
-        final lives = state.livesRemaining - 1;
-        emit(
-          state.copyWith(
-            livesRemaining: lives,
-            errorTileIndex: index,
-            hintTileIndex: null,
-          ),
-        );
-
-        // Clear error highlight after short delay
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!isClosed && state.errorTileIndex == index) {
-            emit(state.copyWith(errorTileIndex: null));
+        if (state.puzzle.mineIndexes.contains(index)) {
+          // Mine detonation
+          AudioService.playMineExplosion();
+          if (_settingsRepo.vibrationEnabled) {
+            unawaited(HapticFeedback.heavyImpact());
+            Future.delayed(const Duration(milliseconds: 120), () {
+              if (!isClosed && _settingsRepo.vibrationEnabled) {
+                unawaited(HapticFeedback.heavyImpact());
+              }
+            });
           }
-        });
 
-        if (lives <= 0) {
-          onLivesExhausted();
+          currentStates[index] = TileState.revealedMine;
+          final lives = state.livesRemaining - 2;
+          
+          emit(
+            state.copyWith(
+              tileStates: currentStates,
+              livesRemaining: lives,
+              mineTileIndex: index,
+              errorTileIndex: null,
+              hintTileIndex: null,
+              lifeLostToken: state.lifeLostToken + 1,
+              lifeLostTileIndex: index,
+              lifeLostTargetHeartIndex: state.livesRemaining - 1,
+            ),
+          );
+
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (!isClosed && state.mineTileIndex == index) {
+              emit(state.copyWith(mineTileIndex: null));
+            }
+          });
+
+          if (lives <= 0) {
+            onLivesExhausted();
+          }
+        } else {
+          // Normal wrong placement
+          AudioService.playError();
+          if (_settingsRepo.vibrationEnabled) {
+            unawaited(HapticFeedback.heavyImpact());
+          }
+
+          final lives = state.livesRemaining - 1;
+          emit(
+            state.copyWith(
+              livesRemaining: lives,
+              errorTileIndex: index,
+              mineTileIndex: null,
+              hintTileIndex: null,
+              lifeLostToken: state.lifeLostToken + 1,
+              lifeLostTileIndex: index,
+              lifeLostTargetHeartIndex: lives,
+            ),
+          );
+
+          // Clear error highlight after short delay
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (!isClosed && state.errorTileIndex == index) {
+              emit(state.copyWith(errorTileIndex: null));
+            }
+          });
+
+          if (lives <= 0) {
+            onLivesExhausted();
+          }
         }
       }
     } else if (tile == TileState.object) {
@@ -375,6 +512,7 @@ class GameCubit extends Cubit<GameState> {
           moveHistory: newHistory,
           errorTileIndex: null,
           hintTileIndex: null,
+          mineTileIndex: null,
         ),
       );
     }
@@ -390,6 +528,8 @@ class GameCubit extends Cubit<GameState> {
     final int row = index ~/ gridSize;
     final int col = index % gridSize;
     final int myColor = puzzle.colorMap[index];
+
+    if (puzzle.mineIndexes.contains(index)) return false;
 
     final placed = <int>[];
     for (int i = 0; i < states.length; i++) {
@@ -460,6 +600,7 @@ class GameCubit extends Cubit<GameState> {
 
   void _onLevelComplete() {
     _timer?.cancel();
+    _trackSnapshots.remove(state.activeTrack);
 
     if (_settingsRepo.vibrationEnabled) {
       unawaited(HapticFeedback.heavyImpact());
@@ -636,6 +777,18 @@ class GameCubit extends Cubit<GameState> {
 
   void switchTrack(PuzzleTrack track) {
     if (state.mode == GameMode.dailyChallenge) return;
+
+    if (state.phase == GamePhase.playing) {
+      _trackSnapshots[state.activeTrack] = _InProgressSnapshot(
+        levelNumber: state.levelNumber,
+        tileStates: List.from(state.tileStates),
+        placedCount: state.placedCount,
+        moveHistory: List.from(state.moveHistory),
+        livesRemaining: state.livesRemaining,
+        elapsed: state.elapsed,
+      );
+    }
+
     startLevel(state.levelNumber, track);
   }
 
@@ -646,16 +799,17 @@ class GameCubit extends Cubit<GameState> {
   void onRewardedAdCompleted(RewardType type) {
     if (type == RewardType.hint) {
       _progressRepo.addHints(1);
-      emit(state.copyWith(hintCount: state.hintCount + 1));
-      useHint();
+      emit(state.copyWith(
+          hintCount: state.hintCount + 1, rewardMessage: '+1 Hint added!'));
     } else if (type == RewardType.bulb) {
       _progressRepo.addBulbs(1);
-      emit(state.copyWith(bulbCount: state.bulbCount + 1));
-      useBulb();
+      emit(state.copyWith(
+          bulbCount: state.bulbCount + 1,
+          rewardMessage: '+1 Solve Row added!'));
     } else if (type == RewardType.undo) {
       _progressRepo.addUndos(1);
-      emit(state.copyWith(undoCount: state.undoCount + 1));
-      undoLast();
+      emit(state.copyWith(
+          undoCount: state.undoCount + 1, rewardMessage: '+1 Undo added!'));
     } else if (type == RewardType.extraLife) {
       _progressRepo.addExtraLives(1);
       emit(
@@ -669,6 +823,31 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void giveUp() {
+    _trackSnapshots.remove(state.activeTrack);
     emit(state.copyWith(phase: GamePhase.gameOver));
   }
+
+  void clearRewardMessage() {
+    if (state.rewardMessage != null) {
+      emit(state.copyWith(clearRewardMessage: true));
+    }
+  }
+}
+
+class _InProgressSnapshot {
+  final int levelNumber;
+  final List<TileState> tileStates;
+  final int placedCount;
+  final List<int> moveHistory;
+  final int livesRemaining;
+  final Duration elapsed;
+
+  _InProgressSnapshot({
+    required this.levelNumber,
+    required this.tileStates,
+    required this.placedCount,
+    required this.moveHistory,
+    required this.livesRemaining,
+    required this.elapsed,
+  });
 }

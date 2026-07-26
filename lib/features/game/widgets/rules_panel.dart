@@ -8,6 +8,7 @@ class RulesPanel extends StatelessWidget {
   final bool blockMinDistance;
   final int minDistance;
   final bool blockKnightMove;
+  final bool hasMines;
 
   const RulesPanel({
     super.key,
@@ -15,6 +16,7 @@ class RulesPanel extends StatelessWidget {
     required this.blockMinDistance,
     this.minDistance = 2,
     required this.blockKnightMove,
+    this.hasMines = false,
   });
 
   @override
@@ -58,6 +60,13 @@ class RulesPanel extends StatelessWidget {
         icon: Icons.extension,
         label: "No ♞",
         onTap: () => RuleTutorialDialog.show(context, TutorialCubit.getKnightsMoveRule()),
+      ));
+    }
+    if (hasMines) {
+      rules.add(_RuleChipData(
+        icon: Icons.warning_amber_rounded,
+        label: "Hidden mines",
+        onTap: () => _showRuleSnack(context, "⚠️ Hidden mines — one wrong step costs double."),
       ));
     }
 

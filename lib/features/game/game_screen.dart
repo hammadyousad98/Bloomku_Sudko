@@ -24,6 +24,7 @@ import 'widgets/bottom_buttons.dart';
 import 'widgets/win_overlay.dart';
 import 'widgets/game_over_overlay.dart';
 import '../../widgets/ads/banner_ad_widget.dart';
+import 'widgets/heartbreak_animation.dart';
 
 class GameScreen extends StatefulWidget {
   final int level;
@@ -44,6 +45,9 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late GameCubit _cubit;
   bool _isShowingTutorial = false;
+  int _lastLifeLostToken = 0;
+  final GlobalKey _gridKey = GlobalKey();
+  final List<GlobalKey> _heartKeys = List.generate(3, (_) => GlobalKey());
 
   @override
   void initState() {
@@ -64,7 +68,7 @@ class _GameScreenState extends State<GameScreen> {
 
       _cubit.startLevel(widget.level, pTrack);
     }
-    AudioService.playGameMusic();
+    AudioService.stopMusic();
     AdService.isInGame = true;
   }
 
@@ -100,7 +104,7 @@ class _GameScreenState extends State<GameScreen> {
     if (_cubit.state.mode == GameMode.dailyChallenge) {
       _cubit.startDailyChallenge();
     } else {
-      _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack);
+      _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack, forceRestart: true);
     }
   }
 
@@ -125,6 +129,18 @@ class _GameScreenState extends State<GameScreen> {
       case 'knightMove':
         slide = TutorialCubit.getKnightsMoveRule();
         break;
+      case 'mine':
+        slide = TutorialCubit.getMineRule();
+        break;
+      case 'rowColumn':
+        slide = TutorialCubit.getRowColumnRule();
+        break;
+      case 'colorRegion':
+        slide = TutorialCubit.getColorRegionRule();
+        break;
+      case 'noTouch':
+        slide = TutorialCubit.getNoTouchRule();
+        break;
       default:
         _isShowingTutorial = false;
         return;
@@ -134,9 +150,40 @@ class _GameScreenState extends State<GameScreen> {
       if (!mounted) return;
       RuleTutorialDialog.show(context, slide).then((_) {
         _isShowingTutorial = false;
-        _cubit.dismissNextRuleTutorial();
+        _cubit.dismissNextRuleTutorial(ruleKey);
       });
     });
+  }
+
+  void _playHeartbreakAnimation(int tileIndex, int targetHeartIndex) {
+    if (targetHeartIndex < 0 || targetHeartIndex >= _heartKeys.length) return;
+    
+    final gridContext = _gridKey.currentContext;
+    final heartContext = _heartKeys[targetHeartIndex].currentContext;
+    if (gridContext == null || heartContext == null) return;
+
+    final gridBox = gridContext.findRenderObject() as RenderBox;
+    final heartBox = heartContext.findRenderObject() as RenderBox;
+
+    final gridSize = _cubit.state.puzzle.gridSize;
+    final cellWidth = (gridBox.size.width - (gridSize - 1) * 4.0) / gridSize;
+    final cellHeight = (gridBox.size.height - (gridSize - 1) * 4.0) / gridSize;
+    
+    final row = tileIndex ~/ gridSize;
+    final col = tileIndex % gridSize;
+    
+    final startOffset = gridBox.localToGlobal(
+      Offset(
+        col * (cellWidth + 4.0) + cellWidth / 2,
+        row * (cellHeight + 4.0) + cellHeight / 2,
+      ),
+    );
+
+    final endOffset = heartBox.localToGlobal(
+      heartBox.size.center(Offset.zero),
+    );
+
+    showHeartbreakAnimation(context, startOffset, endOffset);
   }
 
   @override
@@ -153,6 +200,23 @@ class _GameScreenState extends State<GameScreen> {
               // Show pending rule tutorials as dialogs
               if (state.pendingRuleTutorials.isNotEmpty) {
                 _showPendingTutorials(state);
+              }
+              
+              if (state.rewardMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.rewardMessage!),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                _cubit.clearRewardMessage();
+              }
+
+              if (state.lifeLostToken > _lastLifeLostToken) {
+                _lastLifeLostToken = state.lifeLostToken;
+                if (state.lifeLostTileIndex != null && state.lifeLostTargetHeartIndex != null) {
+                  _playHeartbreakAnimation(state.lifeLostTileIndex!, state.lifeLostTargetHeartIndex!);
+                }
               }
             },
             builder: (context, state) {
@@ -194,12 +258,14 @@ class _GameScreenState extends State<GameScreen> {
                     lives: state.livesRemaining,
                     score: state.score,
                     timerText: "$minutes:$seconds",
+                    heartKeys: _heartKeys,
                   ),
                   RulesPanel(
                     blockFullDiagonal: config.blockFullDiagonal,
                     blockMinDistance: config.blockMinDistance,
                     minDistance: config.minDistance,
                     blockKnightMove: config.blockKnightMove,
+                    hasMines: state.activeTrack == PuzzleTrack.ultraHard && state.puzzle.mineIndexes.isNotEmpty,
                   ),
                   DifficultyBar(
                     showDifficultyBar: state.showDifficultyBar,
@@ -269,6 +335,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildPuzzleGrid(GameState state, dynamic theme) {
     final grid = PuzzleGrid(
+      gridKey: _gridKey,
       gridSize: state.puzzle.gridSize,
       states: state.tileStates,
       colorRegions: state.puzzle.colorMap,
@@ -279,6 +346,8 @@ class _GameScreenState extends State<GameScreen> {
       ),
       errorTileIndex: state.errorTileIndex,
       hintTileIndex: state.hintTileIndex,
+      mineTileIndex: state.mineTileIndex,
+      tutorialHighlightIndexes: state.tutorialHighlightIndexes,
       onTileSingleTap: (index) => _cubit.onTileSingleTap(index),
       onTileDoubleTap: (index) => _cubit.onTileDoubleTap(index),
     );
