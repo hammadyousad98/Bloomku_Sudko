@@ -149,6 +149,20 @@ class ProgressRepository {
     saveProgress(progress);
   }
 
+  bool hasSeenGuidedTutorial() => getProgress().guidedTutorialSeen;
+
+  void markGuidedTutorialSeen() {
+    final progress = getProgress();
+    progress.guidedTutorialSeen = true;
+    saveProgress(progress);
+  }
+
+  void resetGuidedTutorial() {
+    final progress = getProgress();
+    progress.guidedTutorialSeen = false;
+    saveProgress(progress);
+  }
+
   /// Records that a rule tutorial was shown at this level.
   void markRuleTutorialSeen(int levelNumber) {
     final progress = getProgress();

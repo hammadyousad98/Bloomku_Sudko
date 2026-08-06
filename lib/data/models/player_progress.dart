@@ -29,6 +29,9 @@ class PlayerProgress {
   /// Has the main tutorial been seen?
   bool tutorialSeen = false;
 
+  /// Has the new guided tutorial been seen?
+  bool guidedTutorialSeen = false;
+
   /// Level number where the last rule tutorial was shown (to avoid repeat)
   int lastRuleTutorialLevel = 0;
 

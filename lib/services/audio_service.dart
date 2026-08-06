@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -44,7 +43,8 @@ class AudioService {
 
     try {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      final tracks = manifest.listAssets().where((key) => key.startsWith(prefix)).toList();
+      final tracks =
+          manifest.listAssets().where((key) => key.startsWith(prefix)).toList();
       tracks.sort(); // Sort alphabetically for sequential playback
 
       _menuPlaylistsCache[themeIndex] = tracks;
@@ -67,7 +67,8 @@ class AudioService {
     await _playCurrentMenuTrack();
 
     _menuMusicCompleteSub = _musicPlayer.onPlayerComplete.listen((_) {
-      _currentMenuTrackIndex = (_currentMenuTrackIndex + 1) % _currentMenuPlaylist.length;
+      _currentMenuTrackIndex =
+          (_currentMenuTrackIndex + 1) % _currentMenuPlaylist.length;
       _playCurrentMenuTrack();
     });
   }
@@ -75,9 +76,10 @@ class AudioService {
   static Future<void> _playCurrentMenuTrack() async {
     if (_musicVolume <= 0) return;
     await _musicPlayer.setVolume(_musicVolume);
-    
+
     final fullPath = _currentMenuPlaylist[_currentMenuTrackIndex];
-    final assetPath = fullPath.startsWith('assets/') ? fullPath.substring(7) : fullPath;
+    final assetPath =
+        fullPath.startsWith('assets/') ? fullPath.substring(7) : fullPath;
     await _musicPlayer.play(AssetSource(assetPath));
   }
 

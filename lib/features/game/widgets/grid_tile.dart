@@ -14,6 +14,8 @@ class GridTileWidget extends StatelessWidget {
   final bool hasHint;
   final bool isHintRowCol;
   final bool hasMineExplosion;
+  final bool isGuidedLocked;
+  final bool isGuidedTarget;
 
   const GridTileWidget({
     super.key,
@@ -26,6 +28,8 @@ class GridTileWidget extends StatelessWidget {
     this.hasHint = false,
     this.isHintRowCol = false,
     this.hasMineExplosion = false,
+    this.isGuidedLocked = false,
+    this.isGuidedTarget = false,
   });
 
   @override
@@ -102,7 +106,7 @@ class GridTileWidget extends StatelessWidget {
     final hintBaseColor = theme.textPrimary;
     Color bgColor = backgroundColor;
     
-    if (hasHint) {
+    if (hasHint || isGuidedTarget) {
       bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.25), bgColor);
     } else if (isHintRowCol) {
       bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.15), bgColor);
@@ -116,12 +120,12 @@ class GridTileWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: (hasError || hasMineExplosion) ? Colors.red.withValues(alpha: 0.8) : bgColor,
           borderRadius: BorderRadius.circular(10),
-          border: hasHint
+          border: (hasHint || isGuidedTarget)
               ? Border.all(color: hintBaseColor, width: 3)
               : (isHintRowCol
                   ? Border.all(color: hintBaseColor.withValues(alpha: 0.4), width: 1.5)
                   : null),
-          boxShadow: hasHint
+          boxShadow: (hasHint || isGuidedTarget)
               ? [
                   BoxShadow(
                     color: hintBaseColor.withValues(alpha: 0.4),
@@ -134,6 +138,20 @@ class GridTileWidget extends StatelessWidget {
         child: child,
       ),
     );
+
+    if (isGuidedTarget) {
+      tile = tile.animate(onPlay: (c) => c.repeat(reverse: true))
+                 .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.06, 1.06), duration: 600.ms);
+    }
+
+    if (isGuidedLocked) {
+      tile = IgnorePointer(
+        child: Opacity(
+          opacity: 0.35,
+          child: tile,
+        ),
+      );
+    }
 
     if (hasMineExplosion) {
       tile = tile

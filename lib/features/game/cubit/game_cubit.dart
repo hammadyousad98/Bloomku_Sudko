@@ -72,6 +72,144 @@ class GameCubit extends Cubit<GameState> {
     await _startLevelInternal(levelNumber, track, forceRestart: forceRestart);
   }
 
+  Future<void> startGuidedTutorial() async {
+    emit(state.copyWith(
+      guidedModeActive: true,
+      guidedStepIndex: 0,
+    ));
+    await _startLevelInternal(1, PuzzleTrack.normal, forceRestart: true);
+  }
+
+  void _beginGuidedLevel() {
+    emit(state.copyWith(
+      guidedStepIndex: 0,
+      guidedGotchaTriggered: false,
+      guidedGotchaActive: false,
+      guidedPreviewActive: true,
+      guidedPreviewRule: state.levelNumber == 1 ? 'rowColumn' : (state.levelNumber == 2 ? 'colorRegion' : 'noTouch'),
+    ));
+  }
+
+  void finishGuidedPreview() {
+    emit(state.copyWith(guidedPreviewActive: false, clearGuidedPreviewRule: true));
+    if (state.levelNumber == 1) {
+      _teachMarkerStep();
+    } else {
+      _guideCurrentStep();
+    }
+  }
+
+  int _findMarkerDemoTileIndex() {
+    for (int i = 0; i < state.puzzle.gridSize * state.puzzle.gridSize; i++) {
+      if (!state.puzzle.solutionIndexes.contains(i)) {
+        return i;
+      }
+    }
+    return 0; // fallback
+  }
+
+  void _teachMarkerStep() {
+    emit(state.copyWith(
+      guidedInteractableIndex: _findMarkerDemoTileIndex(),
+      guidedTeachingMarker: true,
+      guidedInstructionText: "Tap once to mark this cell with an ×",
+    ));
+  }
+
+  void _guideCurrentStep() {
+    if (state.levelNumber == 3 && state.guidedStepIndex == state.puzzle.solutionIndexes.length - 1 && !state.guidedGotchaTriggered) {
+      int? gotchaIndex;
+      if (state.puzzle.solutionIndexes.isNotEmpty) {
+        int placedIndex = state.puzzle.solutionIndexes[0];
+        int gridSize = state.puzzle.gridSize;
+        int r = placedIndex ~/ gridSize;
+        int c = placedIndex % gridSize;
+        for (int dr in [-1, 1]) {
+          for (int dc in [-1, 1]) {
+             int nr = r + dr;
+             int nc = c + dc;
+             if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
+                int idx = nr * gridSize + nc;
+                if (state.tileStates[idx] == TileState.empty && !state.puzzle.lockedIndexes.contains(idx)) {
+                    gotchaIndex = idx;
+                    break;
+                }
+             }
+          }
+          if (gotchaIndex != null) break;
+        }
+      }
+      
+      if (gotchaIndex != null) {
+          emit(state.copyWith(
+              guidedGotchaActive: true,
+              guidedInteractableIndex: gotchaIndex,
+              guidedTeachingMarker: false,
+              guidedInstructionText: "Try tapping here — see what happens"
+          ));
+          return;
+      }
+    }
+
+    if (state.guidedStepIndex >= state.puzzle.solutionIndexes.length) {
+      _finishGuidedLevelGuidance();
+      return;
+    }
+    final expectedIndex = state.puzzle.solutionIndexes[state.guidedStepIndex];
+    String instr;
+    if (state.levelNumber == 1) {
+      instr = "Double-tap the highlighted tile to place a flower — only one per row & column";
+    } else if (state.levelNumber == 2) {
+      instr = "Double-tap the highlighted tile — only one flower per color region";
+    } else {
+      instr = "Double-tap the highlighted tile — flowers can't touch, not even diagonally";
+    }
+
+    emit(state.copyWith(
+      guidedInteractableIndex: expectedIndex,
+      guidedTeachingMarker: false,
+      guidedInstructionText: instr,
+    ));
+  }
+
+  void _finishGuidedLevelGuidance() {
+    emit(state.copyWith(
+      clearGuidedInteractableIndex: true,
+      clearGuidedInstructionText: true,
+    ));
+  }
+
+  void advanceGuidedLevel() {
+    if (state.levelNumber >= 3) {
+      completeGuidedTutorial();
+    } else {
+      startLevel(state.levelNumber + 1, PuzzleTrack.normal);
+    }
+  }
+
+  void completeGuidedTutorial() {
+    emit(state.copyWith(
+      guidedModeActive: false,
+      clearGuidedInteractableIndex: true,
+      clearGuidedInstructionText: true,
+      showGuidedRecap: true,
+    ));
+    _progressRepo.markGuidedTutorialSeen();
+  }
+
+  void cancelGuidedRecap() {
+    emit(state.copyWith(showGuidedRecap: false));
+  }
+
+  void cancelGuidedTutorial() {
+    emit(state.copyWith(
+      guidedModeActive: false,
+      clearGuidedInteractableIndex: true,
+      clearGuidedInstructionText: true,
+    ));
+    _progressRepo.markGuidedTutorialSeen();
+  }
+
   Future<void> startDailyChallenge() async {
     final config = dailyChallengeConfigFor(DateTime.now());
     await _startLevelInternal(
@@ -253,20 +391,8 @@ class GameCubit extends Cubit<GameState> {
       pending.add('mine');
     }
 
-    if (effectiveTrack == PuzzleTrack.normal) {
-      if (effectiveLevel == 1 && !_progressRepo.hasSeenRowColumnRule()) {
-        _progressRepo.markRowColumnRuleSeen();
-        pending.add('rowColumn');
-      }
-      if (effectiveLevel == 2 && !_progressRepo.hasSeenColorRegionRule()) {
-        _progressRepo.markColorRegionRuleSeen();
-        pending.add('colorRegion');
-      }
-      if (effectiveLevel == 3 && !_progressRepo.hasSeenNoTouchRule()) {
-        _progressRepo.markNoTouchRuleSeen();
-        pending.add('noTouch');
-      }
-    }
+    // The old rule-popup tutorial system for row/column, color-region, and no-touch
+    // on levels 1-3 of Normal track has been superseded by the guided walkthrough.
 
     emit(
       state.copyWith(
@@ -302,6 +428,10 @@ class GameCubit extends Cubit<GameState> {
         lifeLostTargetHeartIndex: null,
       ),
     );
+
+    if (state.guidedModeActive) {
+      _beginGuidedLevel();
+    }
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.phase == GamePhase.playing) {
@@ -371,6 +501,10 @@ class GameCubit extends Cubit<GameState> {
   void onTileSingleTap(int index) {
     if (state.phase != GamePhase.playing) return;
 
+    if (state.guidedModeActive && state.guidedInteractableIndex != null && index != state.guidedInteractableIndex) {
+      return;
+    }
+
     final currentStates = List<TileState>.from(state.tileStates);
     final tile = currentStates[index];
 
@@ -394,10 +528,19 @@ class GameCubit extends Cubit<GameState> {
         mineTileIndex: null,
       ),
     );
+
+    if (state.guidedModeActive && state.guidedTeachingMarker && index == state.guidedInteractableIndex) {
+      emit(state.copyWith(guidedTeachingMarker: false));
+      _guideCurrentStep();
+    }
   }
 
   void onTileDoubleTap(int index) {
     if (state.phase != GamePhase.playing) return;
+
+    if (state.guidedModeActive && state.guidedInteractableIndex != null && index != state.guidedInteractableIndex) {
+      return;
+    }
 
     final currentStates = List<TileState>.from(state.tileStates);
     final tile = currentStates[index];
@@ -428,11 +571,57 @@ class GameCubit extends Cubit<GameState> {
           ),
         );
 
-        if (newPlacedCount == state.targetCount) {
-          _onLevelComplete();
+        if (state.guidedModeActive &&
+            state.guidedStepIndex < state.puzzle.solutionIndexes.length) {
+          if (index == state.puzzle.solutionIndexes[state.guidedStepIndex]) {
+            emit(state.copyWith(
+              guidedStepIndex: state.guidedStepIndex + 1,
+              clearGuidedInteractableIndex: true,
+              clearGuidedInstructionText: true,
+              guidedFeedbackText: state.levelNumber == 1 ? "✓ Nice! Only one flower per row & column" : (state.levelNumber == 2 ? "✓ Correct! One per color region" : "✓ Perfect — no flowers touching")
+            ));
+            Future.delayed(const Duration(milliseconds: 900), () {
+              if (!isClosed && state.guidedModeActive) {
+                emit(state.copyWith(clearGuidedFeedbackText: true));
+                _guideCurrentStep();
+                if (newPlacedCount == state.targetCount) {
+                  _onLevelComplete();
+                }
+              }
+            });
+          }
+        } else {
+          if (newPlacedCount == state.targetCount) {
+            _onLevelComplete();
+          }
         }
       } else {
         // Invalid placement
+        if (state.guidedModeActive && state.guidedGotchaActive) {
+          AudioService.playError();
+          if (_settingsRepo.vibrationEnabled) {
+            unawaited(HapticFeedback.heavyImpact());
+          }
+          emit(state.copyWith(
+            errorTileIndex: index,
+            guidedGotchaActive: false,
+            guidedGotchaTriggered: true,
+            clearGuidedInteractableIndex: true,
+            clearGuidedInstructionText: true,
+            guidedFeedbackText: "That's too close — not even diagonally!"
+          ));
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (!isClosed && state.errorTileIndex == index) {
+              emit(state.copyWith(errorTileIndex: null));
+            }
+            if (!isClosed && state.guidedModeActive) {
+              emit(state.copyWith(clearGuidedFeedbackText: true));
+              _guideCurrentStep();
+            }
+          });
+          return;
+        }
+
         if (state.puzzle.mineIndexes.contains(index)) {
           // Mine detonation
           AudioService.playMineExplosion();
@@ -648,7 +837,10 @@ class GameCubit extends Cubit<GameState> {
       _progressRepo.completeLevel(state.levelNumber, state.activeTrack);
 
       final progress = _progressRepo.getProgress();
-      if (progress.levelsCompletedCount % 2 == 0 && !progress.adsRemoved) {
+      if (!state.guidedModeActive &&
+          progress.levelsCompletedCount >= 5 &&
+          (progress.levelsCompletedCount - 5) % 2 == 0 &&
+          !progress.adsRemoved) {
         AdService.showInterstitial(adsRemoved: progress.adsRemoved);
       }
     }

@@ -12,6 +12,8 @@ class PuzzleGrid extends StatelessWidget {
   final int? hintTileIndex;
   final int? mineTileIndex;
   final List<int>? tutorialHighlightIndexes;
+  final bool guidedModeActive;
+  final int? guidedInteractableIndex;
   final ValueChanged<int> onTileSingleTap;
   final ValueChanged<int> onTileDoubleTap;
   final GlobalKey gridKey;
@@ -29,6 +31,8 @@ class PuzzleGrid extends StatelessWidget {
     this.hintTileIndex,
     this.mineTileIndex,
     this.tutorialHighlightIndexes,
+    this.guidedModeActive = false,
+    this.guidedInteractableIndex,
   });
 
   @override
@@ -59,6 +63,16 @@ class PuzzleGrid extends StatelessWidget {
           isHintRowCol = true;
         }
 
+        bool isGuidedLocked = false;
+        bool isGuidedTarget = false;
+        if (guidedModeActive && guidedInteractableIndex != null) {
+          if (index != guidedInteractableIndex) {
+            isGuidedLocked = true;
+          } else {
+            isGuidedTarget = true;
+          }
+        }
+
         return GridTileWidget(
           backgroundColor: colorMap[index],
           colorRegionIndex: colorRegions[index],
@@ -69,6 +83,8 @@ class PuzzleGrid extends StatelessWidget {
           hasHint: hintTileIndex == index,
           isHintRowCol: isHintRowCol,
           hasMineExplosion: mineTileIndex == index,
+          isGuidedLocked: isGuidedLocked,
+          isGuidedTarget: isGuidedTarget,
         );
       },
     );

@@ -46,6 +46,18 @@ class GameState extends Equatable {
   final int lifeLostToken;
   final int? lifeLostTileIndex;
   final int? lifeLostTargetHeartIndex;
+  final bool guidedModeActive;
+  final int guidedStepIndex;
+  final int? guidedInteractableIndex;
+  final bool guidedTeachingMarker;
+  final String? guidedInstructionText;
+
+  final bool guidedPreviewActive;
+  final String? guidedPreviewRule;
+  final String? guidedFeedbackText;
+  final bool guidedGotchaActive;
+  final bool guidedGotchaTriggered;
+  final bool showGuidedRecap;
 
   const GameState({
     required this.phase,
@@ -79,6 +91,17 @@ class GameState extends Equatable {
     this.lifeLostToken = 0,
     this.lifeLostTileIndex,
     this.lifeLostTargetHeartIndex,
+    this.guidedModeActive = false,
+    this.guidedStepIndex = 0,
+    this.guidedInteractableIndex,
+    this.guidedTeachingMarker = false,
+    this.guidedInstructionText,
+    this.guidedPreviewActive = false,
+    this.guidedPreviewRule,
+    this.guidedFeedbackText,
+    this.guidedGotchaActive = false,
+    this.guidedGotchaTriggered = false,
+    this.showGuidedRecap = false,
   });
 
   GameState copyWith({
@@ -116,6 +139,21 @@ class GameState extends Equatable {
     int? lifeLostToken,
     int? lifeLostTileIndex,
     int? lifeLostTargetHeartIndex,
+    bool? guidedModeActive,
+    int? guidedStepIndex,
+    int? guidedInteractableIndex,
+    bool clearGuidedInteractableIndex = false,
+    bool? guidedTeachingMarker,
+    String? guidedInstructionText,
+    bool clearGuidedInstructionText = false,
+    bool? guidedPreviewActive,
+    String? guidedPreviewRule,
+    bool clearGuidedPreviewRule = false,
+    String? guidedFeedbackText,
+    bool clearGuidedFeedbackText = false,
+    bool? guidedGotchaActive,
+    bool? guidedGotchaTriggered,
+    bool? showGuidedRecap,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -154,6 +192,21 @@ class GameState extends Equatable {
       lifeLostToken: lifeLostToken ?? this.lifeLostToken,
       lifeLostTileIndex: lifeLostTileIndex, // Allow clearing
       lifeLostTargetHeartIndex: lifeLostTargetHeartIndex, // Allow clearing
+      guidedModeActive: guidedModeActive ?? this.guidedModeActive,
+      guidedStepIndex: guidedStepIndex ?? this.guidedStepIndex,
+      guidedInteractableIndex: clearGuidedInteractableIndex
+          ? null
+          : (guidedInteractableIndex ?? this.guidedInteractableIndex),
+      guidedTeachingMarker: guidedTeachingMarker ?? this.guidedTeachingMarker,
+      guidedInstructionText: clearGuidedInstructionText
+          ? null
+          : (guidedInstructionText ?? this.guidedInstructionText),
+      guidedPreviewActive: guidedPreviewActive ?? this.guidedPreviewActive,
+      guidedPreviewRule: clearGuidedPreviewRule ? null : (guidedPreviewRule ?? this.guidedPreviewRule),
+      guidedFeedbackText: clearGuidedFeedbackText ? null : (guidedFeedbackText ?? this.guidedFeedbackText),
+      guidedGotchaActive: guidedGotchaActive ?? this.guidedGotchaActive,
+      guidedGotchaTriggered: guidedGotchaTriggered ?? this.guidedGotchaTriggered,
+      showGuidedRecap: showGuidedRecap ?? this.showGuidedRecap,
     );
   }
 
@@ -190,5 +243,16 @@ class GameState extends Equatable {
         lifeLostToken,
         lifeLostTileIndex,
         lifeLostTargetHeartIndex,
+        guidedModeActive,
+        guidedStepIndex,
+        guidedInteractableIndex,
+        guidedTeachingMarker,
+        guidedInstructionText,
+        guidedPreviewActive,
+        guidedPreviewRule,
+        guidedFeedbackText,
+        guidedGotchaActive,
+        guidedGotchaTriggered,
+        showGuidedRecap,
       ];
 }

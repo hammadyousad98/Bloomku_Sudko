@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../services/audio_service.dart';
 import '../../services/ad_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,6 +26,8 @@ import 'widgets/win_overlay.dart';
 import 'widgets/game_over_overlay.dart';
 import '../../widgets/ads/banner_ad_widget.dart';
 import 'widgets/heartbreak_animation.dart';
+import 'widgets/guided_rule_preview.dart';
+import 'widgets/guided_recap_overlay.dart';
 
 class GameScreen extends StatefulWidget {
   final int level;
@@ -46,6 +49,7 @@ class _GameScreenState extends State<GameScreen> {
   late GameCubit _cubit;
   bool _isShowingTutorial = false;
   int _lastLifeLostToken = 0;
+  bool _wasGuidedModeActive = false;
   final GlobalKey _gridKey = GlobalKey();
   final List<GlobalKey> _heartKeys = List.generate(3, (_) => GlobalKey());
 
@@ -66,7 +70,13 @@ class _GameScreenState extends State<GameScreen> {
               ? PuzzleTrack.ultraHard
               : PuzzleTrack.normal);
 
-      _cubit.startLevel(widget.level, pTrack);
+      if (widget.level == 1 &&
+          pTrack == PuzzleTrack.normal &&
+          !progressRepo.getProgress().guidedTutorialSeen) {
+        _cubit.startGuidedTutorial();
+      } else {
+        _cubit.startLevel(widget.level, pTrack);
+      }
     }
     AudioService.stopMusic();
     AdService.isInGame = true;
@@ -84,6 +94,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startNextLevel() {
+    if (_cubit.state.guidedModeActive) {
+      _cubit.advanceGuidedLevel();
+      return;
+    }
+
     if (_cubit.state.mode == GameMode.dailyChallenge) {
       _goToMenu();
       return;
@@ -132,15 +147,8 @@ class _GameScreenState extends State<GameScreen> {
       case 'mine':
         slide = TutorialCubit.getMineRule();
         break;
-      case 'rowColumn':
-        slide = TutorialCubit.getRowColumnRule();
-        break;
-      case 'colorRegion':
-        slide = TutorialCubit.getColorRegionRule();
-        break;
-      case 'noTouch':
-        slide = TutorialCubit.getNoTouchRule();
-        break;
+      // Obsolete rule cases (rowColumn, colorRegion, noTouch) have been superseded
+      // by the guided tutorial walkthrough and are no longer fired here.
       default:
         _isShowingTutorial = false;
         return;
@@ -197,6 +205,11 @@ class _GameScreenState extends State<GameScreen> {
         body: SafeArea(
           child: BlocConsumer<GameCubit, GameState>(
             listener: (context, state) {
+              if (_wasGuidedModeActive && !state.guidedModeActive && state.phase == GamePhase.levelComplete) {
+                _goToMenu();
+              }
+              _wasGuidedModeActive = state.guidedModeActive;
+
               // Show pending rule tutorials as dialogs
               if (state.pendingRuleTutorials.isNotEmpty) {
                 _showPendingTutorials(state);
@@ -250,7 +263,76 @@ class _GameScreenState extends State<GameScreen> {
                     level: state.levelNumber,
                     gridSize: state.puzzle.gridSize,
                   ),
-                  if (AdConstants.showTopBannerAd)
+                  if (state.guidedModeActive && state.guidedInstructionText != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (state.levelNumber == 1 && state.guidedStepIndex == 0 && state.guidedTeachingMarker)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.school, size: 14, color: theme.accentColor),
+                                  const SizedBox(width: 4),
+                                  Text("Bloom School", style: TextStyle(color: theme.accentColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ).animate().fadeIn().slideX(begin: -0.2),
+                            ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.accentColor,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                                bottomRight: Radius.circular(16),
+                                bottomLeft: Radius.circular(4),
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (state.puzzle.solutionIndexes.isNotEmpty)
+                                        Container(
+                                          margin: const EdgeInsets.only(bottom: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white24,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            state.guidedTeachingMarker 
+                                                ? "Step 1 of ${state.puzzle.solutionIndexes.length + 1}" 
+                                                : "Step ${state.guidedStepIndex + (state.levelNumber == 1 ? 2 : 1)} of ${state.puzzle.solutionIndexes.length + (state.levelNumber == 1 ? 1 : 0)}",
+                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      Text(
+                                        state.guidedInstructionText!,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => _cubit.cancelGuidedTutorial(),
+                                  child: const Text('Skip Tutorial', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                          ).animate().fadeIn().slideY(begin: -0.2, end: 0),
+                        ],
+                      ),
+                    ),
+                  if (AdConstants.showTopBannerAd && !state.guidedModeActive)
                     BannerAdWidget(adUnitId: AdConstants.topBannerUnitId),
                   ProgressRow(
                     placedCount: state.placedCount,
@@ -266,6 +348,7 @@ class _GameScreenState extends State<GameScreen> {
                     minDistance: config.minDistance,
                     blockKnightMove: config.blockKnightMove,
                     hasMines: state.activeTrack == PuzzleTrack.ultraHard && state.puzzle.mineIndexes.isNotEmpty,
+                    highlightedRule: state.guidedModeActive ? (state.levelNumber == 1 ? 'rowColumn' : (state.levelNumber == 2 ? 'colorRegion' : 'noTouch')) : null,
                   ),
                   DifficultyBar(
                     showDifficultyBar: state.showDifficultyBar,
@@ -281,15 +364,16 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                     ),
                   ),
-                  BottomButtons(
-                    hintCount: state.hintCount,
-                    bulbCount: state.bulbCount,
-                    undoCount: state.undoCount,
-                    onHintTap: () => _cubit.useHint(),
-                    onBulbTap: () => _cubit.useBulb(),
-                    onUndoTap: () => _cubit.undoLast(),
-                  ),
-                  if (AdConstants.showBottomBannerAd)
+                  if (!state.guidedModeActive)
+                    BottomButtons(
+                      hintCount: state.hintCount,
+                      bulbCount: state.bulbCount,
+                      undoCount: state.undoCount,
+                      onHintTap: () => _cubit.useHint(),
+                      onBulbTap: () => _cubit.useBulb(),
+                      onUndoTap: () => _cubit.undoLast(),
+                    ),
+                  if (AdConstants.showBottomBannerAd && !state.guidedModeActive)
                     BannerAdWidget(adUnitId: AdConstants.bottomBannerUnitId),
                 ],
               );
@@ -299,7 +383,23 @@ class _GameScreenState extends State<GameScreen> {
                   mainContent,
 
                   // Overlays
-                  if (state.phase == GamePhase.levelComplete)
+                  if (state.showGuidedRecap)
+                    Positioned.fill(
+                      child: GuidedRecapOverlay(
+                        onLetPlay: () {
+                          _cubit.cancelGuidedRecap();
+                          _goToMenu();
+                        },
+                      ),
+                    )
+                  else if (state.guidedPreviewActive && state.guidedPreviewRule != null)
+                    Positioned.fill(
+                      child: GuidedRulePreview(
+                        rule: state.guidedPreviewRule!,
+                        onComplete: () => _cubit.finishGuidedPreview(),
+                      ),
+                    )
+                  else if (state.phase == GamePhase.levelComplete)
                     Positioned.fill(
                       child: WinOverlay(
                         state: state,
@@ -322,6 +422,30 @@ class _GameScreenState extends State<GameScreen> {
                         onGiveUp: () => _cubit.giveUp(),
                         onTryAgain: _restartLevel,
                         onMenu: _goToMenu,
+                      ),
+                    ),
+                  
+                  // Feedback Toast
+                  if (state.guidedFeedbackText != null)
+                    Positioned(
+                      top: 140,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 24),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade600,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 2)],
+                          ),
+                          child: Text(
+                            state.guidedFeedbackText!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ).animate().scale(curve: Curves.easeOutBack, duration: 400.ms).fadeIn(),
                       ),
                     ),
                 ],
@@ -348,6 +472,8 @@ class _GameScreenState extends State<GameScreen> {
       hintTileIndex: state.hintTileIndex,
       mineTileIndex: state.mineTileIndex,
       tutorialHighlightIndexes: state.tutorialHighlightIndexes,
+      guidedModeActive: state.guidedModeActive,
+      guidedInteractableIndex: state.guidedInteractableIndex,
       onTileSingleTap: (index) => _cubit.onTileSingleTap(index),
       onTileDoubleTap: (index) => _cubit.onTileDoubleTap(index),
     );
