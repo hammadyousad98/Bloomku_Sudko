@@ -34,7 +34,7 @@
     },
     {
       "id": "2:3079320991520534107",
-      "lastPropertyId": "15:8626051969272955424",
+      "lastPropertyId": "30:6580335707341808673",
       "name": "PlayerProgress",
       "properties": [
         {
@@ -112,6 +112,81 @@
           "id": "15:8626051969272955424",
           "name": "knightMoveRuleSeen",
           "type": 1
+        },
+        {
+          "id": "16:6024443630607364343",
+          "name": "autoMarks",
+          "type": 6
+        },
+        {
+          "id": "17:4793261697041302465",
+          "name": "streakFreezes",
+          "type": 6
+        },
+        {
+          "id": "18:8545759506457465466",
+          "name": "economyMigrationVersion",
+          "type": 6
+        },
+        {
+          "id": "19:8111362212313214020",
+          "name": "unlockedChapterIdsJson",
+          "type": 9
+        },
+        {
+          "id": "20:1695221151908553541",
+          "name": "unlockedThemeIdsJson",
+          "type": 9
+        },
+        {
+          "id": "21:391467633566538846",
+          "name": "unlockedBoardSkinIdsJson",
+          "type": 9
+        },
+        {
+          "id": "22:7245383822563453332",
+          "name": "unlockedObjectIdsJson",
+          "type": 9
+        },
+        {
+          "id": "23:2588952170418149018",
+          "name": "unlockedMusicTrackIdsJson",
+          "type": 9
+        },
+        {
+          "id": "24:2570097699636676006",
+          "name": "tutorialBoardsCompleted",
+          "type": 6
+        },
+        {
+          "id": "25:7024861192841085882",
+          "name": "tutorialRewardClaimsMask",
+          "type": 6
+        },
+        {
+          "id": "26:1693850080958845703",
+          "name": "guidedTutorialSeen",
+          "type": 1
+        },
+        {
+          "id": "27:5832628826032834488",
+          "name": "mineRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "28:4563920293265591549",
+          "name": "rowColumnRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "29:235578661340265752",
+          "name": "colorRegionRuleSeen",
+          "type": 1
+        },
+        {
+          "id": "30:6580335707341808673",
+          "name": "noTouchRuleSeen",
+          "type": 1
         }
       ],
       "relations": []
@@ -183,10 +258,351 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "5:3854791779522442797",
+      "lastPropertyId": "8:1006105623331626178",
+      "name": "CollectionProgress",
+      "properties": [
+        {
+          "id": "1:3269501233845679994",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6427900487527410895",
+          "name": "chapterId",
+          "indexId": "1:5458417586295440742",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:2509480875765865237",
+          "name": "collectedObjectIdsJson",
+          "type": 9
+        },
+        {
+          "id": "4:7591143336589567239",
+          "name": "collectedCount",
+          "type": 6
+        },
+        {
+          "id": "5:1615202633771031106",
+          "name": "targetCount",
+          "type": 6
+        },
+        {
+          "id": "6:5937926744148830560",
+          "name": "chapterCompleted",
+          "type": 1
+        },
+        {
+          "id": "7:246717238560058179",
+          "name": "completionRewardClaimed",
+          "type": 1
+        },
+        {
+          "id": "8:1006105623331626178",
+          "name": "updatedAtMs",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "6:1649018071184635481",
+      "lastPropertyId": "11:6575809934551693912",
+      "name": "DailyChallengeHistory",
+      "properties": [
+        {
+          "id": "1:591276137196382352",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:2552659360871192782",
+          "name": "dateKey",
+          "indexId": "2:9197839090331505310",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:2297107930724097950",
+          "name": "completed",
+          "type": 1
+        },
+        {
+          "id": "4:8780835046599959182",
+          "name": "bestTimeMs",
+          "type": 6
+        },
+        {
+          "id": "5:1582527519710512449",
+          "name": "bestScore",
+          "type": 6
+        },
+        {
+          "id": "6:3620430446546992430",
+          "name": "lowestMistakes",
+          "type": 6
+        },
+        {
+          "id": "7:1069757916594253636",
+          "name": "streakAtCompletion",
+          "type": 6
+        },
+        {
+          "id": "8:2317599189167524787",
+          "name": "shareGridData",
+          "type": 9
+        },
+        {
+          "id": "9:8701851699997888954",
+          "name": "completionCount",
+          "type": 6
+        },
+        {
+          "id": "10:2543607480350551189",
+          "name": "firstCompletedAtMs",
+          "type": 6
+        },
+        {
+          "id": "11:6575809934551693912",
+          "name": "lastCompletedAtMs",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "7:6900283015633308748",
+      "lastPropertyId": "10:2148120277975907860",
+      "name": "LevelResult",
+      "properties": [
+        {
+          "id": "1:6559717033530834195",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4930241454182458839",
+          "name": "resultKey",
+          "indexId": "3:1211719344811935357",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:1065868771184299418",
+          "name": "levelNumber",
+          "type": 6
+        },
+        {
+          "id": "4:3448621843682095189",
+          "name": "track",
+          "type": 9
+        },
+        {
+          "id": "5:672060433984064166",
+          "name": "bestTimeMs",
+          "type": 6
+        },
+        {
+          "id": "6:2405323744254799520",
+          "name": "bestScore",
+          "type": 6
+        },
+        {
+          "id": "7:7381168325617396453",
+          "name": "highestStars",
+          "type": 6
+        },
+        {
+          "id": "8:7627304385284066888",
+          "name": "completionCount",
+          "type": 6
+        },
+        {
+          "id": "9:7735594963586872149",
+          "name": "bestMistakeCount",
+          "type": 6
+        },
+        {
+          "id": "10:2148120277975907860",
+          "name": "lastCompletedAtMs",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "8:5471307821481285302",
+      "lastPropertyId": "16:7342875526957644673",
+      "name": "PuzzleResult",
+      "properties": [
+        {
+          "id": "1:5423135459517151114",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:2377929292451822807",
+          "name": "puzzleKey",
+          "type": 9
+        },
+        {
+          "id": "3:8827446751866105091",
+          "name": "mode",
+          "type": 9
+        },
+        {
+          "id": "4:92946430204397998",
+          "name": "levelNumber",
+          "type": 6
+        },
+        {
+          "id": "5:4724912898979393975",
+          "name": "track",
+          "type": 9
+        },
+        {
+          "id": "6:8847495100656337892",
+          "name": "completed",
+          "type": 1
+        },
+        {
+          "id": "7:1362955893357511840",
+          "name": "elapsedMs",
+          "type": 6
+        },
+        {
+          "id": "8:544500198649308589",
+          "name": "score",
+          "type": 6
+        },
+        {
+          "id": "9:8878154557183680424",
+          "name": "stars",
+          "type": 6
+        },
+        {
+          "id": "10:2372633746812889459",
+          "name": "mistakes",
+          "type": 6
+        },
+        {
+          "id": "11:6038069779208425329",
+          "name": "hintsUsed",
+          "type": 6
+        },
+        {
+          "id": "12:5863399991804189739",
+          "name": "undosUsed",
+          "type": 6
+        },
+        {
+          "id": "13:3300463385832222960",
+          "name": "solveRowsUsed",
+          "type": 6
+        },
+        {
+          "id": "14:3610234071726138061",
+          "name": "autoMarksUsed",
+          "type": 6
+        },
+        {
+          "id": "15:3723623854066533727",
+          "name": "extraLivesUsed",
+          "type": 6
+        },
+        {
+          "id": "16:7342875526957644673",
+          "name": "playedAtMs",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "9:2973105899891545808",
+      "lastPropertyId": "13:8621792914837924454",
+      "name": "SessionGoalState",
+      "properties": [
+        {
+          "id": "1:3791629179655781185",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4668047722985289912",
+          "name": "goalId",
+          "type": 9
+        },
+        {
+          "id": "3:6004890886986412793",
+          "name": "goalType",
+          "type": 9
+        },
+        {
+          "id": "4:8561922896336435803",
+          "name": "target",
+          "type": 6
+        },
+        {
+          "id": "5:2309226153884516560",
+          "name": "progress",
+          "type": 6
+        },
+        {
+          "id": "6:8290189494920182964",
+          "name": "rewardType",
+          "type": 9
+        },
+        {
+          "id": "7:5189294354973760528",
+          "name": "rewardAmount",
+          "type": 6
+        },
+        {
+          "id": "8:2993423577491710586",
+          "name": "collectionRewardProgress",
+          "type": 6
+        },
+        {
+          "id": "9:1662099106068185521",
+          "name": "completed",
+          "type": 1
+        },
+        {
+          "id": "10:5691872336450260539",
+          "name": "rewardClaimed",
+          "type": 1
+        },
+        {
+          "id": "11:7700568983555205546",
+          "name": "startedAtMs",
+          "type": 6
+        },
+        {
+          "id": "12:3252898073842143800",
+          "name": "expiresAtMs",
+          "type": 6
+        },
+        {
+          "id": "13:8621792914837924454",
+          "name": "qualifyingPuzzleIdsJson",
+          "type": 9
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "4:1573346150561790280",
-  "lastIndexId": "0:0",
+  "lastEntityId": "9:2973105899891545808",
+  "lastIndexId": "3:1211719344811935357",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

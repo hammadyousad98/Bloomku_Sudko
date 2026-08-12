@@ -7,7 +7,10 @@ import '../../../core/utils/puzzle_generator.dart';
 import '../../../data/repositories/daily_challenge_repository.dart';
 import '../../../data/repositories/progress_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
+import '../../../data/repositories/game_session_repository.dart';
 import 'game_state.dart';
+import 'game_scoring.dart';
+import 'auto_mark_logic.dart';
 
 import '../../../services/ad_service.dart';
 import '../../../services/audio_service.dart';
@@ -24,6 +27,7 @@ class GameCubit extends Cubit<GameState> {
   final ProgressRepository _progressRepo;
   final SettingsRepository _settingsRepo;
   final DailyChallengeRepository _dailyChallengeRepo;
+  final GameSessionRepository _sessionRepo;
 
   final Map<PuzzleTrack, _InProgressSnapshot> _trackSnapshots = {};
 
@@ -36,6 +40,7 @@ class GameCubit extends Cubit<GameState> {
     this._progressRepo,
     this._settingsRepo,
     this._dailyChallengeRepo,
+    this._sessionRepo,
   ) : super(
           const GameState(
             phase: GamePhase.loading,
@@ -46,10 +51,12 @@ class GameCubit extends Cubit<GameState> {
             livesRemaining: 3,
             maxLives: 3,
             score: 0,
+            mistakeCount: 0,
             elapsed: Duration.zero,
             hintCount: 0,
             undoCount: 0,
             bulbCount: 0,
+            autoMarkCount: 0,
             extraLiveCount: 0,
             activeTrack: PuzzleTrack.normal,
             levelNumber: 1,
@@ -62,12 +69,15 @@ class GameCubit extends Cubit<GameState> {
   @override
   Future<void> close() {
     _timer?.cancel();
+    _persistCurrentGame();
     return super.close();
   }
 
-  Future<void> startLevel(int levelNumber, PuzzleTrack track, {bool forceRestart = false}) async {
+  Future<void> startLevel(int levelNumber, PuzzleTrack track,
+      {bool forceRestart = false}) async {
     if (forceRestart) {
       _trackSnapshots.remove(track);
+      unawaited(_sessionRepo.clear(track));
     }
     await _startLevelInternal(levelNumber, track, forceRestart: forceRestart);
   }
@@ -77,7 +87,12 @@ class GameCubit extends Cubit<GameState> {
       guidedModeActive: true,
       guidedStepIndex: 0,
     ));
-    await _startLevelInternal(1, PuzzleTrack.normal, forceRestart: true);
+    await _startLevelInternal(
+      1,
+      PuzzleTrack.normal,
+      forceRestart: true,
+      includeLockedFlower: false,
+    );
   }
 
   void _beginGuidedLevel() {
@@ -86,12 +101,15 @@ class GameCubit extends Cubit<GameState> {
       guidedGotchaTriggered: false,
       guidedGotchaActive: false,
       guidedPreviewActive: true,
-      guidedPreviewRule: state.levelNumber == 1 ? 'rowColumn' : (state.levelNumber == 2 ? 'colorRegion' : 'noTouch'),
+      guidedPreviewRule: state.levelNumber == 1
+          ? 'rowColumn'
+          : (state.levelNumber == 2 ? 'colorRegion' : 'noTouch'),
     ));
   }
 
   void finishGuidedPreview() {
-    emit(state.copyWith(guidedPreviewActive: false, clearGuidedPreviewRule: true));
+    emit(state.copyWith(
+        guidedPreviewActive: false, clearGuidedPreviewRule: true));
     if (state.levelNumber == 1) {
       _teachMarkerStep();
     } else {
@@ -117,7 +135,9 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void _guideCurrentStep() {
-    if (state.levelNumber == 3 && state.guidedStepIndex == state.puzzle.solutionIndexes.length - 1 && !state.guidedGotchaTriggered) {
+    if (state.levelNumber == 3 &&
+        state.guidedStepIndex == state.puzzle.solutionIndexes.length - 1 &&
+        !state.guidedGotchaTriggered) {
       int? gotchaIndex;
       if (state.puzzle.solutionIndexes.isNotEmpty) {
         int placedIndex = state.puzzle.solutionIndexes[0];
@@ -126,28 +146,28 @@ class GameCubit extends Cubit<GameState> {
         int c = placedIndex % gridSize;
         for (int dr in [-1, 1]) {
           for (int dc in [-1, 1]) {
-             int nr = r + dr;
-             int nc = c + dc;
-             if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
-                int idx = nr * gridSize + nc;
-                if (state.tileStates[idx] == TileState.empty && !state.puzzle.lockedIndexes.contains(idx)) {
-                    gotchaIndex = idx;
-                    break;
-                }
-             }
+            int nr = r + dr;
+            int nc = c + dc;
+            if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
+              int idx = nr * gridSize + nc;
+              if (state.tileStates[idx] == TileState.empty &&
+                  !state.puzzle.lockedIndexes.contains(idx)) {
+                gotchaIndex = idx;
+                break;
+              }
+            }
           }
           if (gotchaIndex != null) break;
         }
       }
-      
+
       if (gotchaIndex != null) {
-          emit(state.copyWith(
-              guidedGotchaActive: true,
-              guidedInteractableIndex: gotchaIndex,
-              guidedTeachingMarker: false,
-              guidedInstructionText: "Try tapping here — see what happens"
-          ));
-          return;
+        emit(state.copyWith(
+            guidedGotchaActive: true,
+            guidedInteractableIndex: gotchaIndex,
+            guidedTeachingMarker: false,
+            guidedInstructionText: "Try tapping here — see what happens"));
+        return;
       }
     }
 
@@ -158,11 +178,14 @@ class GameCubit extends Cubit<GameState> {
     final expectedIndex = state.puzzle.solutionIndexes[state.guidedStepIndex];
     String instr;
     if (state.levelNumber == 1) {
-      instr = "Double-tap the highlighted tile to place a flower — only one per row & column";
+      instr =
+          "Double-tap the highlighted tile to place a flower — only one per row & column";
     } else if (state.levelNumber == 2) {
-      instr = "Double-tap the highlighted tile — only one flower per color region";
+      instr =
+          "Double-tap the highlighted tile — only one flower per color region";
     } else {
-      instr = "Double-tap the highlighted tile — flowers can't touch, not even diagonally";
+      instr =
+          "Double-tap the highlighted tile — flowers can't touch, not even diagonally";
     }
 
     emit(state.copyWith(
@@ -183,7 +206,12 @@ class GameCubit extends Cubit<GameState> {
     if (state.levelNumber >= 3) {
       completeGuidedTutorial();
     } else {
-      startLevel(state.levelNumber + 1, PuzzleTrack.normal);
+      _startLevelInternal(
+        state.levelNumber + 1,
+        PuzzleTrack.normal,
+        forceRestart: true,
+        includeLockedFlower: false,
+      );
     }
   }
 
@@ -217,6 +245,7 @@ class GameCubit extends Cubit<GameState> {
       config.track,
       mode: GameMode.dailyChallenge,
       dailyDay: config,
+      includeLockedFlower: false,
     );
   }
 
@@ -226,16 +255,30 @@ class GameCubit extends Cubit<GameState> {
     GameMode mode = GameMode.progression,
     DailyChallengeDay? dailyDay,
     bool forceRestart = false,
+    bool includeLockedFlower = true,
   }) async {
     _timer?.cancel();
     final token = ++_generationToken;
 
     var effectiveLevel = levelNumber;
     var effectiveTrack = track;
-    var config = PuzzleGenerator.configForLevel(levelNumber, track);
+    var config = PuzzleGenerator.configForLevel(
+      levelNumber,
+      track,
+      includeLockedFlower: includeLockedFlower,
+    );
     var resolvedDailyDay = dailyDay;
     String? fallbackStatusMessage;
     final isDailyChallenge = mode == GameMode.dailyChallenge;
+
+    if (!isDailyChallenge &&
+        !_progressRepo.isLevelUnlocked(levelNumber, track)) {
+      emit(state.copyWith(
+        statusMessage:
+            'That difficulty is not unlocked for level $levelNumber yet.',
+      ));
+      return;
+    }
 
     emit(
       state.copyWith(
@@ -248,7 +291,13 @@ class GameCubit extends Cubit<GameState> {
         showDifficultyBar: !isDailyChallenge && levelNumber >= 15,
         showUltraTab: !isDailyChallenge && levelNumber > 30,
         elapsed: Duration.zero,
+        score: 0,
+        mistakeCount: 0,
         moveHistory: [],
+        autoMarkHistory: const [],
+        actionHistory: const [],
+        autoMarksUsed: 0,
+        isAdPresenting: false,
         pendingRuleTutorials: const [],
         showRuleTutorial: false,
         errorTileIndex: null,
@@ -299,6 +348,7 @@ class GameCubit extends Cubit<GameState> {
       final fallbackConfig = PuzzleGenerator.configForLevel(
         fallbackDay.level,
         fallbackDay.track,
+        includeLockedFlower: false,
       );
 
       try {
@@ -350,21 +400,42 @@ class GameCubit extends Cubit<GameState> {
     int currentLives = 3;
     Duration currentElapsed = Duration.zero;
     List<int> currentMoveHistory = [];
+    List<List<int>> currentAutoMarkHistory = [];
+    List<String> currentActionHistory = [];
+    int currentAutoMarksUsed = 0;
+    int currentMistakeCount = 0;
 
     if (!forceRestart && !isDailyChallenge) {
-      final snapshot = _trackSnapshots[effectiveTrack];
+      final persisted = _sessionRepo.load(effectiveTrack);
+      final snapshot = _trackSnapshots[effectiveTrack] ??
+          (persisted == null
+              ? null
+              : _InProgressSnapshot.fromSavedSession(persisted));
       if (snapshot != null && snapshot.levelNumber == effectiveLevel) {
         if (snapshot.tileStates.length == states.length) {
           states = List.from(snapshot.tileStates);
           currentPlacedCount = snapshot.placedCount;
           currentMoveHistory = List.from(snapshot.moveHistory);
+          currentAutoMarkHistory = snapshot.autoMarkHistory
+              .map((batch) => List<int>.from(batch))
+              .toList();
+          currentActionHistory = List.from(snapshot.actionHistory);
+          if (currentActionHistory.isEmpty && currentMoveHistory.isNotEmpty) {
+            currentActionHistory =
+                currentMoveHistory.map((index) => 'object:$index').toList();
+          }
+          currentAutoMarksUsed = snapshot.autoMarksUsed;
           currentLives = snapshot.livesRemaining;
           currentElapsed = snapshot.elapsed;
+          currentMistakeCount = snapshot.mistakeCount;
         }
       }
     }
 
     final progress = _progressRepo.getProgress();
+    if (!isDailyChallenge) {
+      unawaited(_sessionRepo.setLastTrack(effectiveTrack));
+    }
     final bool showRuleTutorial = !_progressRepo.hasSeenRuleTutorial(
       effectiveLevel,
     );
@@ -396,17 +467,26 @@ class GameCubit extends Cubit<GameState> {
 
     emit(
       state.copyWith(
-        phase: GamePhase.playing,
+        phase: currentLives <= 0 ? GamePhase.reviveOffer : GamePhase.playing,
         puzzle: puzzle,
         tileStates: states,
         placedCount: currentPlacedCount,
         targetCount: gridSize,
         livesRemaining: currentLives,
         maxLives: 3,
+        score: calculateGameScore(
+          track: effectiveTrack,
+          playerPlacedCount: currentPlacedCount - puzzle.lockedIndexes.length,
+          mistakeCount: currentMistakeCount,
+          elapsed: currentElapsed,
+        ),
+        mistakeCount: currentMistakeCount,
         elapsed: currentElapsed,
         hintCount: progress.hints,
         undoCount: progress.undos,
         bulbCount: progress.bulbs,
+        autoMarkCount: progress.autoMarks,
+        autoMarksUsed: currentAutoMarksUsed,
         extraLiveCount: progress.extraLives,
         mode: mode,
         activeDailyDay: resolvedDailyDay,
@@ -416,6 +496,8 @@ class GameCubit extends Cubit<GameState> {
         showDifficultyBar: !isDailyChallenge && effectiveLevel >= 15,
         showUltraTab: !isDailyChallenge && effectiveLevel > 30,
         moveHistory: currentMoveHistory,
+        autoMarkHistory: currentAutoMarkHistory,
+        actionHistory: currentActionHistory,
         statusMessage: fallbackStatusMessage,
         showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
         pendingRuleTutorials: pending,
@@ -434,12 +516,52 @@ class GameCubit extends Cubit<GameState> {
     }
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.phase == GamePhase.playing) {
+      if (_shouldTimerRun) {
+        final elapsed = state.elapsed + const Duration(seconds: 1);
         emit(
-          state.copyWith(elapsed: state.elapsed + const Duration(seconds: 1)),
+          state.copyWith(
+            elapsed: elapsed,
+            score: _scoreFor(elapsed: elapsed),
+          ),
         );
+        if (elapsed.inSeconds % 5 == 0) _persistCurrentGame();
       }
     });
+  }
+
+  bool get _shouldTimerRun =>
+      state.phase == GamePhase.playing &&
+      state.pendingRuleTutorials.isEmpty &&
+      !state.guidedPreviewActive &&
+      !state.showGuidedRecap;
+
+  int _scoreFor({
+    Duration? elapsed,
+    int? placedCount,
+    int? mistakeCount,
+    bool completed = false,
+  }) {
+    return calculateGameScore(
+      track: state.activeTrack,
+      playerPlacedCount: (placedCount ?? state.placedCount) -
+          state.puzzle.lockedIndexes.length,
+      mistakeCount: mistakeCount ?? state.mistakeCount,
+      elapsed: elapsed ?? state.elapsed,
+      completed: completed,
+    );
+  }
+
+  void pauseGame() {
+    if (state.phase == GamePhase.playing) {
+      emit(state.copyWith(phase: GamePhase.paused));
+      _persistCurrentGame();
+    }
+  }
+
+  void resumeGame() {
+    if (state.phase == GamePhase.paused) {
+      emit(state.copyWith(phase: GamePhase.playing));
+    }
   }
 
   /// Called by the UI after showing a rule tutorial dialog.
@@ -501,7 +623,9 @@ class GameCubit extends Cubit<GameState> {
   void onTileSingleTap(int index) {
     if (state.phase != GamePhase.playing) return;
 
-    if (state.guidedModeActive && state.guidedInteractableIndex != null && index != state.guidedInteractableIndex) {
+    if (state.guidedModeActive &&
+        state.guidedInteractableIndex != null &&
+        index != state.guidedInteractableIndex) {
       return;
     }
 
@@ -514,7 +638,7 @@ class GameCubit extends Cubit<GameState> {
 
     if (tile == TileState.empty) {
       currentStates[index] = TileState.marker;
-    } else if (tile == TileState.marker) {
+    } else if (tile == TileState.marker || tile == TileState.autoMarker) {
       currentStates[index] = TileState.empty;
     } else {
       return;
@@ -528,8 +652,11 @@ class GameCubit extends Cubit<GameState> {
         mineTileIndex: null,
       ),
     );
+    _persistCurrentGame();
 
-    if (state.guidedModeActive && state.guidedTeachingMarker && index == state.guidedInteractableIndex) {
+    if (state.guidedModeActive &&
+        state.guidedTeachingMarker &&
+        index == state.guidedInteractableIndex) {
       emit(state.copyWith(guidedTeachingMarker: false));
       _guideCurrentStep();
     }
@@ -538,7 +665,9 @@ class GameCubit extends Cubit<GameState> {
   void onTileDoubleTap(int index) {
     if (state.phase != GamePhase.playing) return;
 
-    if (state.guidedModeActive && state.guidedInteractableIndex != null && index != state.guidedInteractableIndex) {
+    if (state.guidedModeActive &&
+        state.guidedInteractableIndex != null &&
+        index != state.guidedInteractableIndex) {
       return;
     }
 
@@ -549,10 +678,14 @@ class GameCubit extends Cubit<GameState> {
       return;
     }
 
-    if (tile == TileState.empty || tile == TileState.marker) {
+    if (tile == TileState.empty ||
+        tile == TileState.marker ||
+        tile == TileState.autoMarker) {
       if (_canPlace(index, currentStates)) {
         currentStates[index] = TileState.object;
         final newHistory = List<int>.from(state.moveHistory)..add(index);
+        final newActionHistory = List<String>.from(state.actionHistory)
+          ..add('object:$index:${tile.name}');
         final newPlacedCount = state.placedCount + 1;
 
         AudioService.playPlaceObject();
@@ -564,34 +697,40 @@ class GameCubit extends Cubit<GameState> {
           state.copyWith(
             tileStates: currentStates,
             placedCount: newPlacedCount,
+            score: _scoreFor(placedCount: newPlacedCount),
             moveHistory: newHistory,
+            actionHistory: newActionHistory,
             errorTileIndex: null,
             hintTileIndex: null,
             mineTileIndex: null,
           ),
         );
+        _persistCurrentGame();
 
         if (state.guidedModeActive &&
             state.guidedStepIndex < state.puzzle.solutionIndexes.length) {
           if (index == state.puzzle.solutionIndexes[state.guidedStepIndex]) {
             emit(state.copyWith(
-              guidedStepIndex: state.guidedStepIndex + 1,
-              clearGuidedInteractableIndex: true,
-              clearGuidedInstructionText: true,
-              guidedFeedbackText: state.levelNumber == 1 ? "✓ Nice! Only one flower per row & column" : (state.levelNumber == 2 ? "✓ Correct! One per color region" : "✓ Perfect — no flowers touching")
-            ));
+                guidedStepIndex: state.guidedStepIndex + 1,
+                clearGuidedInteractableIndex: true,
+                clearGuidedInstructionText: true,
+                guidedFeedbackText: state.levelNumber == 1
+                    ? "✓ Nice! Only one flower per row & column"
+                    : (state.levelNumber == 2
+                        ? "✓ Correct! One per color region"
+                        : "✓ Perfect — no flowers touching")));
             Future.delayed(const Duration(milliseconds: 900), () {
               if (!isClosed && state.guidedModeActive) {
                 emit(state.copyWith(clearGuidedFeedbackText: true));
                 _guideCurrentStep();
-                if (newPlacedCount == state.targetCount) {
+                if (_isBoardComplete(currentStates)) {
                   _onLevelComplete();
                 }
               }
             });
           }
         } else {
-          if (newPlacedCount == state.targetCount) {
+          if (_isBoardComplete(currentStates)) {
             _onLevelComplete();
           }
         }
@@ -603,13 +742,12 @@ class GameCubit extends Cubit<GameState> {
             unawaited(HapticFeedback.heavyImpact());
           }
           emit(state.copyWith(
-            errorTileIndex: index,
-            guidedGotchaActive: false,
-            guidedGotchaTriggered: true,
-            clearGuidedInteractableIndex: true,
-            clearGuidedInstructionText: true,
-            guidedFeedbackText: "That's too close — not even diagonally!"
-          ));
+              errorTileIndex: index,
+              guidedGotchaActive: false,
+              guidedGotchaTriggered: true,
+              clearGuidedInteractableIndex: true,
+              clearGuidedInstructionText: true,
+              guidedFeedbackText: "That's too close — not even diagonally!"));
           Future.delayed(const Duration(milliseconds: 1500), () {
             if (!isClosed && state.errorTileIndex == index) {
               emit(state.copyWith(errorTileIndex: null));
@@ -636,11 +774,14 @@ class GameCubit extends Cubit<GameState> {
 
           currentStates[index] = TileState.revealedMine;
           final lives = state.livesRemaining - 2;
-          
+          final mistakes = state.mistakeCount + 1;
+
           emit(
             state.copyWith(
               tileStates: currentStates,
               livesRemaining: lives,
+              mistakeCount: mistakes,
+              score: _scoreFor(mistakeCount: mistakes),
               mineTileIndex: index,
               errorTileIndex: null,
               hintTileIndex: null,
@@ -649,6 +790,7 @@ class GameCubit extends Cubit<GameState> {
               lifeLostTargetHeartIndex: state.livesRemaining - 1,
             ),
           );
+          _persistCurrentGame();
 
           Future.delayed(const Duration(milliseconds: 500), () {
             if (!isClosed && state.mineTileIndex == index) {
@@ -667,9 +809,12 @@ class GameCubit extends Cubit<GameState> {
           }
 
           final lives = state.livesRemaining - 1;
+          final mistakes = state.mistakeCount + 1;
           emit(
             state.copyWith(
               livesRemaining: lives,
+              mistakeCount: mistakes,
+              score: _scoreFor(mistakeCount: mistakes),
               errorTileIndex: index,
               mineTileIndex: null,
               hintTileIndex: null,
@@ -678,6 +823,7 @@ class GameCubit extends Cubit<GameState> {
               lifeLostTargetHeartIndex: lives,
             ),
           );
+          _persistCurrentGame();
 
           // Clear error highlight after short delay
           Future.delayed(const Duration(milliseconds: 500), () {
@@ -694,32 +840,30 @@ class GameCubit extends Cubit<GameState> {
     } else if (tile == TileState.object) {
       currentStates[index] = TileState.empty;
       final newHistory = List<int>.from(state.moveHistory)..remove(index);
+      final newActionHistory = List<String>.from(state.actionHistory)
+        ..removeWhere((action) =>
+            action == 'object:$index' || action.startsWith('object:$index:'));
       emit(
         state.copyWith(
           tileStates: currentStates,
           placedCount: state.placedCount - 1,
+          score: _scoreFor(placedCount: state.placedCount - 1),
           moveHistory: newHistory,
+          actionHistory: newActionHistory,
           errorTileIndex: null,
           hintTileIndex: null,
           mineTileIndex: null,
         ),
       );
+      _persistCurrentGame();
     }
   }
 
   bool _canPlace(int index, List<TileState> states) {
-    final puzzle = state.puzzle;
     final config = PuzzleGenerator.configForLevel(
       state.levelNumber,
       state.activeTrack,
     );
-    final int gridSize = puzzle.gridSize;
-    final int row = index ~/ gridSize;
-    final int col = index % gridSize;
-    final int myColor = puzzle.colorMap[index];
-
-    if (puzzle.mineIndexes.contains(index)) return false;
-
     final placed = <int>[];
     for (int i = 0; i < states.length; i++) {
       if (states[i] == TileState.object ||
@@ -727,6 +871,22 @@ class GameCubit extends Cubit<GameState> {
         placed.add(i);
       }
     }
+
+    return _canPlaceAgainst(index, placed, config);
+  }
+
+  bool _canPlaceAgainst(
+    int index,
+    List<int> placed,
+    PuzzleConfig config,
+  ) {
+    final puzzle = state.puzzle;
+    final gridSize = puzzle.gridSize;
+    final row = index ~/ gridSize;
+    final col = index % gridSize;
+    final myColor = puzzle.colorMap[index];
+
+    if (puzzle.mineIndexes.contains(index)) return false;
 
     for (int i = 0; i < placed.length; i++) {
       int pIndex = placed[i];
@@ -753,6 +913,27 @@ class GameCubit extends Cubit<GameState> {
       if (config.blockKnightMove && _isKnightMove(index, pIndex, gridSize)) {
         return false;
       }
+    }
+    return true;
+  }
+
+  bool _isBoardComplete(List<TileState> states) {
+    final placed = <int>[];
+    for (var index = 0; index < states.length; index++) {
+      if (states[index] == TileState.object ||
+          states[index] == TileState.lockedObject) {
+        placed.add(index);
+      }
+    }
+    if (placed.length != state.targetCount) return false;
+
+    final config = PuzzleGenerator.configForLevel(
+      state.levelNumber,
+      state.activeTrack,
+    );
+    for (var i = 0; i < placed.length; i++) {
+      final others = List<int>.from(placed)..removeAt(i);
+      if (!_canPlaceAgainst(placed[i], others, config)) return false;
     }
     return true;
   }
@@ -790,16 +971,13 @@ class GameCubit extends Cubit<GameState> {
   void _onLevelComplete() {
     _timer?.cancel();
     _trackSnapshots.remove(state.activeTrack);
+    unawaited(_sessionRepo.clear(state.activeTrack));
 
     if (_settingsRepo.vibrationEnabled) {
       unawaited(HapticFeedback.heavyImpact());
     }
 
-    int wrongPlacements = (state.maxLives - state.livesRemaining);
-    int baseScore = 1000;
-    int errorsPenalty = wrongPlacements * 10;
-    int flawlessBonus = wrongPlacements == 0 ? 50 : 0;
-    int finalScore = state.score + baseScore - errorsPenalty + flawlessBonus;
+    final finalScore = _scoreFor(completed: true);
 
     if (state.mode == GameMode.dailyChallenge) {
       if (!_dailyChallengeRepo.hasCompletedToday()) {
@@ -849,136 +1027,227 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void useHint() {
+    if (!_canUsePowers) return;
     if (state.hintCount > 0) {
-      _progressRepo.useHint();
+      final completion = _findCompatibleCompletion(state.tileStates);
+      final target = completion?.where((index) {
+        return state.tileStates[index] == TileState.empty ||
+            state.tileStates[index] == TileState.marker ||
+            state.tileStates[index] == TileState.autoMarker;
+      }).firstOrNull;
 
-      // Find a valid empty tile
-      int? target;
-      for (int i = 0; i < state.puzzle.solutionIndexes.length; i++) {
-        int index = state.puzzle.solutionIndexes[i];
-        if (state.tileStates[index] == TileState.empty ||
-            state.tileStates[index] == TileState.marker) {
-          target = index;
-          break;
-        }
-      }
+      if (target == null) return;
+      _progressRepo.useHint();
 
       emit(
         state.copyWith(hintCount: state.hintCount - 1, hintTileIndex: target),
       );
 
-      if (target != null) {
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (!isClosed && state.hintTileIndex == target) {
-            emit(state.copyWith(hintTileIndex: null));
-          }
-        });
-      }
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (!isClosed && state.hintTileIndex == target) {
+          emit(state.copyWith(hintTileIndex: null));
+        }
+      });
     } else {
-      try {
-        AdService.showRewarded(
-          RewardType.hint,
-          onRewarded: onRewardedAdCompleted,
-          adsRemoved: _progressRepo.getProgress().adsRemoved,
-        );
-      } catch (_) {}
+      _showRewardedPower(RewardType.hint);
     }
   }
 
   void useBulb() {
+    if (!_canUsePowers) return;
     if (state.bulbCount > 0) {
-      _progressRepo.useBulb();
-
       final currentStates = List<TileState>.from(state.tileStates);
-      final gridSize = state.puzzle.gridSize;
+      final completion = _findCompatibleCompletion(currentStates);
+      final target = completion?.where((index) {
+        final tile = currentStates[index];
+        return tile != TileState.object && tile != TileState.lockedObject;
+      }).firstOrNull;
 
-      for (int row = 0; row < gridSize; row++) {
-        // Find if this row is already solved
-        bool solved = false;
-        for (int col = 0; col < gridSize; col++) {
-          int index = row * gridSize + col;
-          if (currentStates[index] == TileState.object ||
-              currentStates[index] == TileState.lockedObject) {
-            solved = true;
-            break;
-          }
-        }
-
-        if (!solved) {
-          // Place the correct object for this row
-          for (int index in state.puzzle.solutionIndexes) {
-            if (index ~/ gridSize == row) {
-              currentStates[index] =
-                  TileState.lockedObject; // lock it so it can't be undone
-              final newPlacedCount = state.placedCount + 1;
-              emit(
-                state.copyWith(
-                  bulbCount: state.bulbCount - 1,
-                  tileStates: currentStates,
-                  placedCount: newPlacedCount,
-                ),
-              );
-              if (newPlacedCount == state.targetCount) {
-                _onLevelComplete();
-              }
-              return;
-            }
-          }
-        }
-      }
+      if (target == null) return;
+      _progressRepo.useBulb();
+      currentStates[target] = TileState.lockedObject;
+      final newPlacedCount = state.placedCount + 1;
+      emit(
+        state.copyWith(
+          bulbCount: state.bulbCount - 1,
+          tileStates: currentStates,
+          placedCount: newPlacedCount,
+          score: _scoreFor(placedCount: newPlacedCount),
+        ),
+      );
+      _persistCurrentGame();
+      if (_isBoardComplete(currentStates)) _onLevelComplete();
     } else {
-      try {
-        AdService.showRewarded(
-          RewardType.bulb,
-          onRewarded: onRewardedAdCompleted,
-          adsRemoved: _progressRepo.getProgress().adsRemoved,
-        );
-      } catch (_) {}
+      _showRewardedPower(RewardType.bulb);
     }
   }
 
+  void useAutoMark() {
+    if (!_canUsePowers) return;
+
+    final targets = findAutoMarkTargets(
+      state.tileStates,
+      state.puzzle.gridSize,
+      state.puzzle.mineIndexes.toSet(),
+    );
+    if (targets.isEmpty) {
+      emit(state.copyWith(
+        rewardMessage: 'No new touching cells can be marked yet.',
+      ));
+      return;
+    }
+
+    if (state.autoMarkCount <= 0) {
+      _showRewardedPower(RewardType.autoMark);
+      return;
+    }
+    if (!_progressRepo.useAutoMark()) return;
+
+    final currentStates = List<TileState>.from(state.tileStates);
+    for (final index in targets) {
+      currentStates[index] = TileState.autoMarker;
+    }
+    final batches =
+        state.autoMarkHistory.map((batch) => List<int>.from(batch)).toList();
+    final batchIndex = batches.length;
+    batches.add(targets);
+    final actions = List<String>.from(state.actionHistory)
+      ..add('autoMark:$batchIndex');
+
+    emit(state.copyWith(
+      tileStates: currentStates,
+      autoMarkCount: state.autoMarkCount - 1,
+      autoMarksUsed: state.autoMarksUsed + 1,
+      autoMarkHistory: batches,
+      actionHistory: actions,
+    ));
+    _persistCurrentGame();
+  }
+
   void undoLast() {
-    if (state.moveHistory.isNotEmpty && state.undoCount > 0) {
-      _progressRepo.useUndo();
+    if (!_canUsePowers || state.actionHistory.isEmpty) return;
+    if (state.undoCount <= 0) {
+      _showRewardedPower(RewardType.undo);
+      return;
+    }
 
-      final currentStates = List<TileState>.from(state.tileStates);
-      final newHistory = List<int>.from(state.moveHistory);
-      final indexToUndo = newHistory.removeLast();
+    final currentStates = List<TileState>.from(state.tileStates);
+    final actions = List<String>.from(state.actionHistory);
+    final action = actions.removeLast();
+    final moveHistory = List<int>.from(state.moveHistory);
+    final batches =
+        state.autoMarkHistory.map((batch) => List<int>.from(batch)).toList();
+    var placedCount = state.placedCount;
+    var changed = false;
 
-      if (currentStates[indexToUndo] == TileState.object) {
-        currentStates[indexToUndo] = TileState.empty;
-        emit(
-          state.copyWith(
-            undoCount: state.undoCount - 1,
-            tileStates: currentStates,
-            moveHistory: newHistory,
-            placedCount: state.placedCount - 1,
-          ),
-        );
+    if (action.startsWith('autoMark:')) {
+      final batchIndex = int.tryParse(action.substring('autoMark:'.length));
+      if (batchIndex != null &&
+          batchIndex >= 0 &&
+          batchIndex < batches.length) {
+        changed =
+            revertAutoMarkTransaction(currentStates, batches[batchIndex]) > 0;
+        batches.removeAt(batchIndex);
       }
-    } else if (state.undoCount <= 0) {
-      try {
-        AdService.showRewarded(
-          RewardType.undo,
-          onRewarded: onRewardedAdCompleted,
-          adsRemoved: _progressRepo.getProgress().adsRemoved,
-        );
-      } catch (_) {}
+    } else if (action.startsWith('object:')) {
+      final parts = action.split(':');
+      final index = parts.length >= 2 ? int.tryParse(parts[1]) : null;
+      if (index != null &&
+          index >= 0 &&
+          index < currentStates.length &&
+          currentStates[index] == TileState.object) {
+        final previousState = parts.length >= 3
+            ? TileState.values
+                .where((value) => value.name == parts[2])
+                .firstOrNull
+            : null;
+        currentStates[index] = previousState ?? TileState.empty;
+        moveHistory.remove(index);
+        placedCount -= 1;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      emit(state.copyWith(
+        autoMarkHistory: batches,
+        actionHistory: actions,
+      ));
+      _persistCurrentGame();
+      return;
+    }
+
+    if (!_progressRepo.useUndo()) return;
+    emit(state.copyWith(
+      undoCount: state.undoCount - 1,
+      tileStates: currentStates,
+      moveHistory: moveHistory,
+      autoMarkHistory: batches,
+      actionHistory: actions,
+      placedCount: placedCount,
+      score: _scoreFor(placedCount: placedCount),
+    ));
+    _persistCurrentGame();
+  }
+
+  bool get _canUsePowers =>
+      state.phase == GamePhase.playing &&
+      !state.guidedModeActive &&
+      state.pendingRuleTutorials.isEmpty &&
+      !state.guidedPreviewActive &&
+      !state.showGuidedRecap &&
+      !state.isAdPresenting &&
+      !AdService.isPresentingFullScreenAd;
+
+  void _showRewardedPower(RewardType type) {
+    if (!_canUsePowers) return;
+    emit(state.copyWith(isAdPresenting: true));
+    try {
+      final started = AdService.showRewarded(
+        type,
+        onRewarded: onRewardedAdCompleted,
+        adsRemoved: _progressRepo.getProgress().adsRemoved,
+        onClosed: () {
+          if (!isClosed) emit(state.copyWith(isAdPresenting: false));
+        },
+      );
+      if (!started && !isClosed) {
+        emit(state.copyWith(isAdPresenting: false));
+      }
+    } catch (_) {
+      if (!isClosed) emit(state.copyWith(isAdPresenting: false));
     }
   }
 
   void switchTrack(PuzzleTrack track) {
     if (state.mode == GameMode.dailyChallenge) return;
+    if (track == state.activeTrack) return;
+    if (!_progressRepo.isLevelUnlocked(state.levelNumber, track)) {
+      emit(state.copyWith(
+        rewardMessage:
+            '${track == PuzzleTrack.ultraHard ? 'Ultra Hard' : 'Hard'} level ${state.levelNumber} is still locked.',
+      ));
+      return;
+    }
 
     if (state.phase == GamePhase.playing) {
-      _trackSnapshots[state.activeTrack] = _InProgressSnapshot(
+      final snapshot = _InProgressSnapshot(
         levelNumber: state.levelNumber,
         tileStates: List.from(state.tileStates),
         placedCount: state.placedCount,
         moveHistory: List.from(state.moveHistory),
+        autoMarkHistory: state.autoMarkHistory
+            .map((batch) => List<int>.from(batch))
+            .toList(),
+        actionHistory: List.from(state.actionHistory),
+        autoMarksUsed: state.autoMarksUsed,
         livesRemaining: state.livesRemaining,
         elapsed: state.elapsed,
+        mistakeCount: state.mistakeCount,
       );
+      _trackSnapshots[state.activeTrack] = snapshot;
+      unawaited(
+          _sessionRepo.save(state.activeTrack, snapshot.toSavedSession()));
     }
 
     startLevel(state.levelNumber, track);
@@ -1002,20 +1271,42 @@ class GameCubit extends Cubit<GameState> {
       _progressRepo.addUndos(1);
       emit(state.copyWith(
           undoCount: state.undoCount + 1, rewardMessage: '+1 Undo added!'));
+    } else if (type == RewardType.autoMark) {
+      _progressRepo.addAutoMarks(1);
+      emit(state.copyWith(
+        autoMarkCount: state.autoMarkCount + 1,
+        rewardMessage: '+1 AutoMark added!',
+      ));
     } else if (type == RewardType.extraLife) {
-      _progressRepo.addExtraLives(1);
       emit(
         state.copyWith(
-          extraLiveCount: state.extraLiveCount + 1,
-          livesRemaining: 3,
+          livesRemaining: 1,
           phase: GamePhase.playing,
+          rewardMessage: '+1 life restored!',
         ),
       );
+      _persistCurrentGame();
     }
+  }
+
+  void useInventoryExtraLife() {
+    if (state.phase != GamePhase.reviveOffer || state.extraLiveCount <= 0) {
+      return;
+    }
+    if (!_progressRepo.useExtraLife()) return;
+
+    emit(state.copyWith(
+      extraLiveCount: state.extraLiveCount - 1,
+      livesRemaining: 1,
+      phase: GamePhase.playing,
+      rewardMessage: 'Extra life used: +1 heart',
+    ));
+    _persistCurrentGame();
   }
 
   void giveUp() {
     _trackSnapshots.remove(state.activeTrack);
+    unawaited(_sessionRepo.clear(state.activeTrack));
     emit(state.copyWith(phase: GamePhase.gameOver));
   }
 
@@ -1024,6 +1315,68 @@ class GameCubit extends Cubit<GameState> {
       emit(state.copyWith(clearRewardMessage: true));
     }
   }
+
+  List<int>? _findCompatibleCompletion(List<TileState> states) {
+    final gridSize = state.puzzle.gridSize;
+    final config = PuzzleGenerator.configForLevel(
+      state.levelNumber,
+      state.activeTrack,
+    );
+    final placed = <int>[];
+    for (var index = 0; index < states.length; index++) {
+      if (states[index] == TileState.object ||
+          states[index] == TileState.lockedObject) {
+        placed.add(index);
+      }
+    }
+
+    List<int>? search(int row, List<int> candidate) {
+      if (row == gridSize) return candidate;
+      if (candidate.any((index) => index ~/ gridSize == row)) {
+        return search(row + 1, candidate);
+      }
+
+      final preferred = state.puzzle.solutionIndexes
+          .where((index) => index ~/ gridSize == row);
+      final rowIndexes = {
+        ...preferred,
+        for (var col = 0; col < gridSize; col++) row * gridSize + col,
+      };
+      for (final index in rowIndexes) {
+        if (_canPlaceAgainst(index, candidate, config)) {
+          final result = search(row + 1, [...candidate, index]);
+          if (result != null) return result;
+        }
+      }
+      return null;
+    }
+
+    return search(0, placed);
+  }
+
+  void _persistCurrentGame() {
+    if (state.mode != GameMode.progression ||
+        state.puzzle == GeneratedPuzzle.invalid ||
+        state.phase == GamePhase.levelComplete ||
+        state.phase == GamePhase.gameOver) {
+      return;
+    }
+    final snapshot = _InProgressSnapshot(
+      levelNumber: state.levelNumber,
+      tileStates: List.from(state.tileStates),
+      placedCount: state.placedCount,
+      moveHistory: List.from(state.moveHistory),
+      autoMarkHistory:
+          state.autoMarkHistory.map((batch) => List<int>.from(batch)).toList(),
+      actionHistory: List.from(state.actionHistory),
+      autoMarksUsed: state.autoMarksUsed,
+      livesRemaining: state.livesRemaining,
+      elapsed: state.elapsed,
+      mistakeCount: state.mistakeCount,
+    );
+    _trackSnapshots[state.activeTrack] = snapshot;
+    unawaited(_sessionRepo.save(state.activeTrack, snapshot.toSavedSession()));
+  }
 }
 
 class _InProgressSnapshot {
@@ -1031,15 +1384,50 @@ class _InProgressSnapshot {
   final List<TileState> tileStates;
   final int placedCount;
   final List<int> moveHistory;
+  final List<List<int>> autoMarkHistory;
+  final List<String> actionHistory;
+  final int autoMarksUsed;
   final int livesRemaining;
   final Duration elapsed;
+  final int mistakeCount;
 
   _InProgressSnapshot({
     required this.levelNumber,
     required this.tileStates,
     required this.placedCount,
     required this.moveHistory,
+    required this.autoMarkHistory,
+    required this.actionHistory,
+    required this.autoMarksUsed,
     required this.livesRemaining,
     required this.elapsed,
+    required this.mistakeCount,
   });
+
+  factory _InProgressSnapshot.fromSavedSession(SavedGameSession session) =>
+      _InProgressSnapshot(
+        levelNumber: session.levelNumber,
+        tileStates: session.tileStates,
+        placedCount: session.placedCount,
+        moveHistory: session.moveHistory,
+        autoMarkHistory: session.autoMarkHistory,
+        actionHistory: session.actionHistory,
+        autoMarksUsed: session.autoMarksUsed,
+        livesRemaining: session.livesRemaining,
+        elapsed: Duration(seconds: session.elapsedSeconds),
+        mistakeCount: session.mistakeCount,
+      );
+
+  SavedGameSession toSavedSession() => SavedGameSession(
+        levelNumber: levelNumber,
+        tileStates: tileStates,
+        placedCount: placedCount,
+        moveHistory: moveHistory,
+        autoMarkHistory: autoMarkHistory,
+        actionHistory: actionHistory,
+        autoMarksUsed: autoMarksUsed,
+        livesRemaining: livesRemaining,
+        elapsedSeconds: elapsed.inSeconds,
+        mistakeCount: mistakeCount,
+      );
 }

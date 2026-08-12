@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../di/service_locator.dart';
-import '../utils/puzzle_generator.dart';
+import '../constants/app_constants.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/reward_repository.dart';
 import '../../features/daily_challenges/daily_challenges_screen.dart';
@@ -89,7 +89,8 @@ class AppRouter {
           : state.uri.queryParameters['track'] ?? 'normal';
 
       final isCurrentPlayable = level != null &&
-          sl<ProgressRepository>().isCurrentPlayableLevel(
+          level <= maxLevelCount &&
+          sl<ProgressRepository>().isLevelUnlocked(
             level,
             _trackFromName(trackName),
           );

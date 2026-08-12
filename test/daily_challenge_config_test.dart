@@ -34,7 +34,7 @@ void main() {
         undoReward: 2,
       ),
       const DailyChallengeDay(
-        85,
+        50,
         PuzzleTrack.ultraHard,
         hintReward: 3,
         bulbReward: 3,

@@ -45,7 +45,7 @@ class _WinOverlayState extends State<WinOverlay> {
   @override
   Widget build(BuildContext context) {
     final theme = context.bloomkuTheme;
-    final wrongPlacements = widget.state.maxLives - widget.state.livesRemaining;
+    final wrongPlacements = widget.state.mistakeCount;
     int stars = 3;
     if (wrongPlacements >= 3) {
       stars = 1;

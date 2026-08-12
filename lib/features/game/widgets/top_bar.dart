@@ -4,8 +4,14 @@ import 'package:go_router/go_router.dart';
 class TopBar extends StatelessWidget {
   final int level;
   final int gridSize;
+  final VoidCallback onSettings;
 
-  const TopBar({super.key, required this.level, required this.gridSize});
+  const TopBar({
+    super.key,
+    required this.level,
+    required this.gridSize,
+    required this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +33,7 @@ class TopBar extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
+            onPressed: onSettings,
           ),
         ],
       ),

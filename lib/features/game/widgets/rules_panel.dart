@@ -31,19 +31,22 @@ class RulesPanel extends StatelessWidget {
         ruleKey: 'colorRegion',
         icon: Icons.palette,
         label: "1 per color",
-        onTap: () => _showRuleSnack(context, "Each color region contains exactly one piece."),
+        onTap: () => _showRuleSnack(
+            context, "Each color region contains exactly one piece."),
       ),
       _RuleChipData(
         ruleKey: 'rowColumn',
         icon: Icons.grid_on,
         label: "1 per row & col",
-        onTap: () => _showRuleSnack(context, "Every row and column contains exactly one piece."),
+        onTap: () => _showRuleSnack(
+            context, "Every row and column contains exactly one piece."),
       ),
       _RuleChipData(
         ruleKey: 'noTouch',
         icon: Icons.block,
         label: "No touching",
-        onTap: () => _showRuleSnack(context, "No two pieces can be adjacent — including diagonally adjacent."),
+        onTap: () => _showRuleSnack(context,
+            "No two pieces can be adjacent — including diagonally adjacent."),
       ),
     ];
 
@@ -52,7 +55,8 @@ class RulesPanel extends StatelessWidget {
         ruleKey: 'diagonal',
         icon: Icons.close_fullscreen,
         label: "No diagonal",
-        onTap: () => RuleTutorialDialog.show(context, TutorialCubit.getFullDiagonalRule()),
+        onTap: () => RuleTutorialDialog.show(
+            context, TutorialCubit.getFullDiagonalRule()),
       ));
     }
     if (blockMinDistance) {
@@ -60,7 +64,8 @@ class RulesPanel extends StatelessWidget {
         ruleKey: 'minDistance',
         icon: Icons.open_in_full,
         label: "Spread $minDistance+",
-        onTap: () => RuleTutorialDialog.show(context, TutorialCubit.getMinDistanceRule(minDistance)),
+        onTap: () => RuleTutorialDialog.show(
+            context, TutorialCubit.getMinDistanceRule(minDistance)),
       ));
     }
     if (blockKnightMove) {
@@ -68,7 +73,8 @@ class RulesPanel extends StatelessWidget {
         ruleKey: 'knightMove',
         icon: Icons.extension,
         label: "No ♞",
-        onTap: () => RuleTutorialDialog.show(context, TutorialCubit.getKnightsMoveRule()),
+        onTap: () => RuleTutorialDialog.show(
+            context, TutorialCubit.getKnightsMoveRule()),
       ));
     }
     if (hasMines) {
@@ -76,7 +82,8 @@ class RulesPanel extends StatelessWidget {
         ruleKey: 'mine',
         icon: Icons.warning_amber_rounded,
         label: "Hidden mines",
-        onTap: () => _showRuleSnack(context, "⚠️ Hidden mines — one wrong step costs double."),
+        onTap: () => _showRuleSnack(
+            context, "⚠️ Hidden mines — one wrong step costs double."),
       ));
     }
 
@@ -91,24 +98,33 @@ class RulesPanel extends StatelessWidget {
           final isHighlighted = highlightedRule == rule.ruleKey;
 
           Widget chip = ActionChip(
-            avatar: Icon(rule.icon, size: 16, color: isHighlighted ? Colors.white : theme.accentColor),
-            label: Text(rule.label, style: TextStyle(color: isHighlighted ? Colors.white : theme.textPrimary)),
+            avatar: Icon(rule.icon,
+                size: 16,
+                color: isHighlighted ? Colors.white : theme.accentColor),
+            label: Text(rule.label,
+                style: TextStyle(
+                    color: isHighlighted ? Colors.white : theme.textPrimary)),
             backgroundColor: isHighlighted ? Colors.amber : theme.cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              side: isHighlighted ? const BorderSide(color: Colors.amberAccent, width: 2) : BorderSide.none,
+              side: isHighlighted
+                  ? const BorderSide(color: Colors.amberAccent, width: 2)
+                  : BorderSide.none,
             ),
             onPressed: rule.onTap,
           );
 
           if (isHighlighted) {
-            chip = chip
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .boxShadow(
-                begin: const BoxShadow(color: Colors.transparent),
-                end: BoxShadow(color: Colors.amber.withOpacity(0.6), blurRadius: 8, spreadRadius: 2),
-                duration: const Duration(milliseconds: 800),
-              );
+            chip =
+                chip.animate(onPlay: (c) => c.repeat(reverse: true)).boxShadow(
+                      begin: const BoxShadow(color: Colors.transparent),
+                      end: BoxShadow(
+                        color: Colors.amber.withValues(alpha: 0.6),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                      duration: const Duration(milliseconds: 800),
+                    );
           }
 
           return Padding(
@@ -133,5 +149,9 @@ class _RuleChipData {
   final String label;
   final VoidCallback onTap;
 
-  _RuleChipData({required this.ruleKey, required this.icon, required this.label, required this.onTap});
+  _RuleChipData(
+      {required this.ruleKey,
+      required this.icon,
+      required this.label,
+      required this.onTap});
 }

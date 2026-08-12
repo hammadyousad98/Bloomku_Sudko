@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:objectbox/objectbox.dart';
 import '../models/player_progress.dart';
 import '../../core/constants/app_constants.dart';
@@ -10,12 +12,32 @@ class ProgressRepository {
   /// Returns the single PlayerProgress record, creating it if absent.
   PlayerProgress getProgress() {
     final existing = _box.getAll();
-    if (existing.isNotEmpty) return existing.first;
+    if (existing.isNotEmpty) return _applyMigrations(existing.first);
 
     // New object MUST have id = 0 for ObjectBox to auto-assign
     final defaults = PlayerProgress(); // id defaults to 0
     _box.put(defaults);
     return defaults;
+  }
+
+  PlayerProgress _applyMigrations(PlayerProgress progress) {
+    if (progress.economyMigrationVersion < 1) {
+      progress.autoMarks += initialAutoMarkGrant;
+      for (final chapter in campaignChapters) {
+        if (chapter.startLevel > progress.normalHighest) continue;
+        progress.unlockedChapterIdsJson =
+            _addId(progress.unlockedChapterIdsJson, chapter.id);
+        progress.unlockedThemeIdsJson =
+            _addId(progress.unlockedThemeIdsJson, chapter.themeId);
+        progress.unlockedBoardSkinIdsJson =
+            _addId(progress.unlockedBoardSkinIdsJson, chapter.boardSkinId);
+        progress.unlockedMusicTrackIdsJson =
+            _addId(progress.unlockedMusicTrackIdsJson, chapter.musicTrackId);
+      }
+      progress.economyMigrationVersion = 1;
+      _box.put(progress);
+    }
+    return progress;
   }
 
   /// Saves the progress object back to the box.
@@ -31,15 +53,19 @@ class ProgressRepository {
 
     if (track == PuzzleTrack.normal) {
       if (levelNumber >= progress.normalHighest) {
-        progress.normalHighest = levelNumber + 1;
+        progress.normalHighest = (levelNumber + 1).clamp(1, maxLevelCount + 1);
+        final nextChapter = chapterForLevel(progress.normalHighest);
+        if (nextChapter != null) {
+          _unlockChapterOn(progress, nextChapter);
+        }
       }
     } else if (track == PuzzleTrack.hard) {
       if (levelNumber >= progress.hardHighest) {
-        progress.hardHighest = levelNumber + 1;
+        progress.hardHighest = (levelNumber + 1).clamp(1, maxLevelCount + 1);
       }
     } else if (track == PuzzleTrack.ultraHard) {
       if (levelNumber >= progress.ultraHighest) {
-        progress.ultraHighest = levelNumber + 1;
+        progress.ultraHighest = (levelNumber + 1).clamp(1, maxLevelCount + 1);
       }
     }
 
@@ -47,7 +73,7 @@ class ProgressRepository {
   }
 
   bool isLevelUnlocked(int levelNumber, PuzzleTrack track) {
-    if (levelNumber < 1) return false;
+    if (levelNumber < 1 || levelNumber > maxLevelCount) return false;
 
     final progress = getProgress();
     return levelNumber <=
@@ -95,6 +121,18 @@ class ProgressRepository {
     saveProgress(progress);
   }
 
+  void addAutoMarks(int count) {
+    final progress = getProgress();
+    progress.autoMarks += count;
+    saveProgress(progress);
+  }
+
+  void addStreakFreezes(int count) {
+    final progress = getProgress();
+    progress.streakFreezes += count;
+    saveProgress(progress);
+  }
+
   /// Consumes one of each item. Returns false if not enough inventory.
   bool useHint() {
     final progress = getProgress();
@@ -134,6 +172,99 @@ class ProgressRepository {
       return true;
     }
     return false;
+  }
+
+  bool useAutoMark() {
+    final progress = getProgress();
+    if (progress.autoMarks <= 0) return false;
+    progress.autoMarks -= 1;
+    saveProgress(progress);
+    return true;
+  }
+
+  bool useStreakFreeze() {
+    final progress = getProgress();
+    if (progress.streakFreezes <= 0) return false;
+    progress.streakFreezes -= 1;
+    saveProgress(progress);
+    return true;
+  }
+
+  Set<String> unlockedChapterIds() =>
+      _decodeIds(getProgress().unlockedChapterIdsJson);
+  Set<String> unlockedThemeIds() =>
+      _decodeIds(getProgress().unlockedThemeIdsJson);
+  Set<String> unlockedBoardSkinIds() =>
+      _decodeIds(getProgress().unlockedBoardSkinIdsJson);
+  Set<String> unlockedObjectIds() =>
+      _decodeIds(getProgress().unlockedObjectIdsJson);
+  Set<String> unlockedMusicTrackIds() =>
+      _decodeIds(getProgress().unlockedMusicTrackIdsJson);
+
+  void unlockChapter(CampaignChapter chapter) {
+    final progress = getProgress();
+    _unlockChapterOn(progress, chapter);
+    saveProgress(progress);
+  }
+
+  void _unlockChapterOn(PlayerProgress progress, CampaignChapter chapter) {
+    progress.unlockedChapterIdsJson =
+        _addId(progress.unlockedChapterIdsJson, chapter.id);
+    progress.unlockedThemeIdsJson =
+        _addId(progress.unlockedThemeIdsJson, chapter.themeId);
+    progress.unlockedBoardSkinIdsJson =
+        _addId(progress.unlockedBoardSkinIdsJson, chapter.boardSkinId);
+    progress.unlockedMusicTrackIdsJson =
+        _addId(progress.unlockedMusicTrackIdsJson, chapter.musicTrackId);
+  }
+
+  void unlockObject(String objectId) {
+    final progress = getProgress();
+    progress.unlockedObjectIdsJson =
+        _addId(progress.unlockedObjectIdsJson, objectId);
+    saveProgress(progress);
+  }
+
+  void markTutorialBoardCompleted(int boardNumber) {
+    if (boardNumber < 1 || boardNumber > tutorialBoardCount) return;
+    final progress = getProgress();
+    if (boardNumber > progress.tutorialBoardsCompleted) {
+      progress.tutorialBoardsCompleted = boardNumber;
+      saveProgress(progress);
+    }
+  }
+
+  bool isTutorialRewardClaimed(int boardNumber) {
+    if (boardNumber < 1 || boardNumber > tutorialBoardCount) return false;
+    return getProgress().tutorialRewardClaimsMask & (1 << (boardNumber - 1)) !=
+        0;
+  }
+
+  bool claimTutorialReward(int boardNumber) {
+    if (boardNumber < 1 || boardNumber > tutorialBoardCount) return false;
+    final progress = getProgress();
+    if (progress.tutorialBoardsCompleted < boardNumber) return false;
+    final bit = 1 << (boardNumber - 1);
+    if (progress.tutorialRewardClaimsMask & bit != 0) return false;
+    progress.tutorialRewardClaimsMask |= bit;
+    saveProgress(progress);
+    return true;
+  }
+
+  Set<String> _decodeIds(String value) {
+    try {
+      return (jsonDecode(value) as List<dynamic>).cast<String>().toSet();
+    } on FormatException {
+      return <String>{};
+    } on TypeError {
+      return <String>{};
+    }
+  }
+
+  String _addId(String value, String id) {
+    final ids = _decodeIds(value)..add(id);
+    final sorted = ids.toList()..sort();
+    return jsonEncode(sorted);
   }
 
   /// Marks the main tutorial as seen.

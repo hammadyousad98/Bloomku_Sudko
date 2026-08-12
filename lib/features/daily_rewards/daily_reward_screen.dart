@@ -138,6 +138,7 @@ class _DailyRewardView extends StatelessWidget {
     if (rewardData == null) return const SizedBox.shrink();
 
     final streakDay = rewardData.currentStreakDay;
+    final rewardCycleDay = streakDay == 0 ? 0 : ((streakDay - 1) % 7) + 1;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -152,7 +153,7 @@ class _DailyRewardView extends StatelessWidget {
           _WeeklyCalendar(
             currentStreakDay: streakDay,
             claimedToday: !canClaim,
-            justClaimedDay: justClaimed ? streakDay : null,
+            justClaimedDay: justClaimed ? rewardCycleDay : null,
           ),
           const SizedBox(height: 32),
           // Post-claim celebration
@@ -260,6 +261,10 @@ class _WeeklyCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentCycleDay = currentStreakDay == 0
+        ? 0
+        : ((currentStreakDay - 1) % kDailyRewards.length) + 1;
+    final claimableCycleDay = (currentStreakDay % kDailyRewards.length) + 1;
     return SizedBox(
       height: 148,
       child: ListView.separated(
@@ -270,12 +275,13 @@ class _WeeklyCalendar extends StatelessWidget {
         itemBuilder: (context, i) {
           final dayNumber = i + 1;
           final reward = kDailyRewards[i];
-          final isPast = dayNumber < currentStreakDay;
+          final activeCycleDay =
+              claimedToday ? currentCycleDay : claimableCycleDay;
+          final isPast = dayNumber < activeCycleDay;
           final isTodayClaimable =
-              !claimedToday && dayNumber == currentStreakDay + 1;
-          final isTodayClaimed = claimedToday && dayNumber == currentStreakDay;
-          final isFuture =
-              dayNumber > currentStreakDay + (claimedToday ? 0 : 1);
+              !claimedToday && dayNumber == claimableCycleDay;
+          final isTodayClaimed = claimedToday && dayNumber == currentCycleDay;
+          final isFuture = dayNumber > activeCycleDay;
 
           return _DayCard(
             dayNumber: dayNumber,
@@ -502,7 +508,8 @@ class _TomorrowPreview extends StatelessWidget {
       parts.add('↩️ ${tomorrow.undos} Undo${tomorrow.undos > 1 ? "s" : ""}');
     }
     if (tomorrow.bulbs > 0) {
-      parts.add('🌟 ${tomorrow.bulbs} Row Solve${tomorrow.bulbs > 1 ? "s" : ""}');
+      parts.add(
+          '🌟 ${tomorrow.bulbs} Row Solve${tomorrow.bulbs > 1 ? "s" : ""}');
     }
 
     return Container(

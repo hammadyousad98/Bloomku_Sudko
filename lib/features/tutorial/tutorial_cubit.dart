@@ -121,7 +121,7 @@ class TutorialCubit extends Cubit<TutorialState> {
     return const TutorialSlide(
       title: "The Knight Awakens!",
       body:
-          "From level 80, each [objectName] also blocks the cells a chess knight can jump to. The L-shaped move adds a surprising new layer to every puzzle.",
+          "From level 45, each [objectName] also blocks the cells a chess knight can jump to. The L-shaped move adds a surprising new layer to every puzzle.",
     );
   }
 

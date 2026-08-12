@@ -23,10 +23,13 @@ class GameState extends Equatable {
   final int livesRemaining;
   final int maxLives;
   final int score;
+  final int mistakeCount;
   final Duration elapsed;
   final int hintCount;
   final int undoCount;
   final int bulbCount;
+  final int autoMarkCount;
+  final int autoMarksUsed;
   final int extraLiveCount;
   final PuzzleTrack activeTrack;
   final int levelNumber;
@@ -35,6 +38,9 @@ class GameState extends Equatable {
   final bool showDifficultyBar;
   final bool showUltraTab;
   final List<int> moveHistory;
+  final List<List<int>> autoMarkHistory;
+  final List<String> actionHistory;
+  final bool isAdPresenting;
   final String? statusMessage;
   final bool showRuleTutorial;
   final int? errorTileIndex;
@@ -59,6 +65,14 @@ class GameState extends Equatable {
   final bool guidedGotchaTriggered;
   final bool showGuidedRecap;
 
+  bool get powersEnabled =>
+      phase == GamePhase.playing &&
+      !guidedModeActive &&
+      pendingRuleTutorials.isEmpty &&
+      !guidedPreviewActive &&
+      !showGuidedRecap &&
+      !isAdPresenting;
+
   const GameState({
     required this.phase,
     required this.puzzle,
@@ -68,10 +82,13 @@ class GameState extends Equatable {
     required this.livesRemaining,
     required this.maxLives,
     required this.score,
+    required this.mistakeCount,
     required this.elapsed,
     required this.hintCount,
     required this.undoCount,
     required this.bulbCount,
+    required this.autoMarkCount,
+    this.autoMarksUsed = 0,
     required this.extraLiveCount,
     required this.activeTrack,
     required this.levelNumber,
@@ -80,6 +97,9 @@ class GameState extends Equatable {
     required this.showDifficultyBar,
     required this.showUltraTab,
     required this.moveHistory,
+    this.autoMarkHistory = const [],
+    this.actionHistory = const [],
+    this.isAdPresenting = false,
     this.statusMessage,
     this.showRuleTutorial = false,
     this.errorTileIndex,
@@ -113,10 +133,13 @@ class GameState extends Equatable {
     int? livesRemaining,
     int? maxLives,
     int? score,
+    int? mistakeCount,
     Duration? elapsed,
     int? hintCount,
     int? undoCount,
     int? bulbCount,
+    int? autoMarkCount,
+    int? autoMarksUsed,
     int? extraLiveCount,
     PuzzleTrack? activeTrack,
     int? levelNumber,
@@ -126,6 +149,9 @@ class GameState extends Equatable {
     bool? showDifficultyBar,
     bool? showUltraTab,
     List<int>? moveHistory,
+    List<List<int>>? autoMarkHistory,
+    List<String>? actionHistory,
+    bool? isAdPresenting,
     String? statusMessage,
     bool? showRuleTutorial,
     int? errorTileIndex,
@@ -164,10 +190,13 @@ class GameState extends Equatable {
       livesRemaining: livesRemaining ?? this.livesRemaining,
       maxLives: maxLives ?? this.maxLives,
       score: score ?? this.score,
+      mistakeCount: mistakeCount ?? this.mistakeCount,
       elapsed: elapsed ?? this.elapsed,
       hintCount: hintCount ?? this.hintCount,
       undoCount: undoCount ?? this.undoCount,
       bulbCount: bulbCount ?? this.bulbCount,
+      autoMarkCount: autoMarkCount ?? this.autoMarkCount,
+      autoMarksUsed: autoMarksUsed ?? this.autoMarksUsed,
       extraLiveCount: extraLiveCount ?? this.extraLiveCount,
       activeTrack: activeTrack ?? this.activeTrack,
       levelNumber: levelNumber ?? this.levelNumber,
@@ -177,6 +206,9 @@ class GameState extends Equatable {
       showDifficultyBar: showDifficultyBar ?? this.showDifficultyBar,
       showUltraTab: showUltraTab ?? this.showUltraTab,
       moveHistory: moveHistory ?? this.moveHistory,
+      autoMarkHistory: autoMarkHistory ?? this.autoMarkHistory,
+      actionHistory: actionHistory ?? this.actionHistory,
+      isAdPresenting: isAdPresenting ?? this.isAdPresenting,
       statusMessage: statusMessage ?? this.statusMessage,
       showRuleTutorial: showRuleTutorial ?? this.showRuleTutorial,
       errorTileIndex:
@@ -202,10 +234,15 @@ class GameState extends Equatable {
           ? null
           : (guidedInstructionText ?? this.guidedInstructionText),
       guidedPreviewActive: guidedPreviewActive ?? this.guidedPreviewActive,
-      guidedPreviewRule: clearGuidedPreviewRule ? null : (guidedPreviewRule ?? this.guidedPreviewRule),
-      guidedFeedbackText: clearGuidedFeedbackText ? null : (guidedFeedbackText ?? this.guidedFeedbackText),
+      guidedPreviewRule: clearGuidedPreviewRule
+          ? null
+          : (guidedPreviewRule ?? this.guidedPreviewRule),
+      guidedFeedbackText: clearGuidedFeedbackText
+          ? null
+          : (guidedFeedbackText ?? this.guidedFeedbackText),
       guidedGotchaActive: guidedGotchaActive ?? this.guidedGotchaActive,
-      guidedGotchaTriggered: guidedGotchaTriggered ?? this.guidedGotchaTriggered,
+      guidedGotchaTriggered:
+          guidedGotchaTriggered ?? this.guidedGotchaTriggered,
       showGuidedRecap: showGuidedRecap ?? this.showGuidedRecap,
     );
   }
@@ -220,10 +257,13 @@ class GameState extends Equatable {
         livesRemaining,
         maxLives,
         score,
+        mistakeCount,
         elapsed,
         hintCount,
         undoCount,
         bulbCount,
+        autoMarkCount,
+        autoMarksUsed,
         extraLiveCount,
         activeTrack,
         levelNumber,
@@ -232,6 +272,9 @@ class GameState extends Equatable {
         showDifficultyBar,
         showUltraTab,
         moveHistory,
+        autoMarkHistory,
+        actionHistory,
+        isAdPresenting,
         statusMessage,
         showRuleTutorial,
         errorTileIndex,

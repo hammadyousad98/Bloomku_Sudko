@@ -2,7 +2,14 @@ import 'dart:math';
 
 enum PuzzleTrack { normal, hard, ultraHard }
 
-enum TileState { empty, marker, object, lockedObject, revealedMine }
+enum TileState {
+  empty,
+  marker,
+  autoMarker,
+  object,
+  lockedObject,
+  revealedMine,
+}
 
 class PuzzleConfig {
   final int gridSize;
@@ -12,6 +19,7 @@ class PuzzleConfig {
   final bool blockMinDistance;
   final int minDistance;
   final bool blockKnightMove;
+  final bool includeLockedFlower;
 
   const PuzzleConfig({
     required this.gridSize,
@@ -21,6 +29,7 @@ class PuzzleConfig {
     this.blockMinDistance = false,
     this.minDistance = 3,
     this.blockKnightMove = false,
+    this.includeLockedFlower = true,
   });
 }
 
@@ -68,8 +77,21 @@ class PuzzleGenerator {
 
     // Fallback: if Ultra failed, try Hard config for the same level
     if (config.track == PuzzleTrack.ultraHard) {
-      final fallbackConfig =
-          configForLevel(config.levelNumber, PuzzleTrack.hard);
+      final hardConfig = configForLevel(
+        config.levelNumber,
+        PuzzleTrack.hard,
+        includeLockedFlower: config.includeLockedFlower,
+      );
+      final fallbackConfig = PuzzleConfig(
+        gridSize: hardConfig.gridSize,
+        levelNumber: config.levelNumber,
+        track: PuzzleTrack.ultraHard,
+        blockFullDiagonal: hardConfig.blockFullDiagonal,
+        blockMinDistance: hardConfig.blockMinDistance,
+        minDistance: hardConfig.minDistance,
+        blockKnightMove: hardConfig.blockKnightMove,
+        includeLockedFlower: config.includeLockedFlower,
+      );
       final fallback = _tryGenerate(fallbackConfig);
       if (fallback.isValid) return fallback;
     }
@@ -121,9 +143,10 @@ class PuzzleGenerator {
         List<int> lockedIndexes = [];
         List<int> mineIndexes = [];
 
-        if (config.track == PuzzleTrack.hard) {
+        if (config.includeLockedFlower) {
           lockedIndexes.add(solution[rng.nextInt(solution.length)]);
-        } else if (config.track == PuzzleTrack.ultraHard) {
+        }
+        if (config.track == PuzzleTrack.ultraHard) {
           int mineCount = _minMines + rng.nextInt(_maxMines - _minMines + 1);
           List<int> candidates = [];
           for (int i = 0; i < config.gridSize * config.gridSize; i++) {
@@ -151,6 +174,7 @@ class PuzzleGenerator {
             }
             if (safe) mineIndexes.add(c);
           }
+          if (mineIndexes.length < _minMines) continue;
         }
 
         return GeneratedPuzzle(
@@ -201,7 +225,11 @@ class PuzzleGenerator {
     return baseSize;
   }
 
-  static PuzzleConfig configForLevel(int level, PuzzleTrack track) {
+  static PuzzleConfig configForLevel(
+    int level,
+    PuzzleTrack track, {
+    bool includeLockedFlower = true,
+  }) {
     final gridSize = gridSizeForLevel(level, track);
     final blockFullDiagonal = isDiagonalRuleActive(level, track);
     final blockMinDistance = isMinDistanceRuleActive(level, track);
@@ -216,6 +244,7 @@ class PuzzleGenerator {
       blockMinDistance: blockMinDistance,
       minDistance: minDistance,
       blockKnightMove: blockKnightMove,
+      includeLockedFlower: includeLockedFlower,
     );
   }
 
@@ -225,7 +254,7 @@ class PuzzleGenerator {
   static bool isMinDistanceRuleActive(int level, PuzzleTrack track) =>
       track == PuzzleTrack.ultraHard && level >= 50;
 
-  static bool isKnightMoveRuleActive(int level) => level >= 80;
+  static bool isKnightMoveRuleActive(int level) => level >= 45;
 
   static int minDistanceForGrid(int gridSize) {
     if (gridSize <= 9) return 2;

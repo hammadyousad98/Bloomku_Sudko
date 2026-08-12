@@ -44,13 +44,16 @@ class GridTileWidget extends StatelessWidget {
         child = const SizedBox.expand();
         break;
       case TileState.marker:
+      case TileState.autoMarker:
         child = Center(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return Icon(
                 Icons.close_rounded,
                 size: constraints.maxWidth * 0.4,
-                color: theme.textPrimary.withValues(alpha: 0.5),
+                color: state == TileState.autoMarker
+                    ? theme.accentColor.withValues(alpha: 0.75)
+                    : theme.textPrimary.withValues(alpha: 0.5),
               );
             },
           ),
@@ -105,11 +108,13 @@ class GridTileWidget extends StatelessWidget {
 
     final hintBaseColor = theme.textPrimary;
     Color bgColor = backgroundColor;
-    
+
     if (hasHint || isGuidedTarget) {
-      bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.25), bgColor);
+      bgColor =
+          Color.alphaBlend(hintBaseColor.withValues(alpha: 0.25), bgColor);
     } else if (isHintRowCol) {
-      bgColor = Color.alphaBlend(hintBaseColor.withValues(alpha: 0.15), bgColor);
+      bgColor =
+          Color.alphaBlend(hintBaseColor.withValues(alpha: 0.15), bgColor);
     }
 
     Widget tile = GestureDetector(
@@ -118,12 +123,15 @@ class GridTileWidget extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: (hasError || hasMineExplosion) ? Colors.red.withValues(alpha: 0.8) : bgColor,
+          color: (hasError || hasMineExplosion)
+              ? Colors.red.withValues(alpha: 0.8)
+              : bgColor,
           borderRadius: BorderRadius.circular(10),
           border: (hasHint || isGuidedTarget)
               ? Border.all(color: hintBaseColor, width: 3)
               : (isHintRowCol
-                  ? Border.all(color: hintBaseColor.withValues(alpha: 0.4), width: 1.5)
+                  ? Border.all(
+                      color: hintBaseColor.withValues(alpha: 0.4), width: 1.5)
                   : null),
           boxShadow: (hasHint || isGuidedTarget)
               ? [
@@ -140,8 +148,10 @@ class GridTileWidget extends StatelessWidget {
     );
 
     if (isGuidedTarget) {
-      tile = tile.animate(onPlay: (c) => c.repeat(reverse: true))
-                 .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.06, 1.06), duration: 600.ms);
+      tile = tile.animate(onPlay: (c) => c.repeat(reverse: true)).scale(
+          begin: const Offset(1.0, 1.0),
+          end: const Offset(1.06, 1.06),
+          duration: 600.ms);
     }
 
     if (isGuidedLocked) {

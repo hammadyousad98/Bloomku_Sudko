@@ -8,13 +8,15 @@ import 'core/di/service_locator.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/repositories/reward_repository.dart';
 import 'data/repositories/progress_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 late ObjectBoxStore objectBoxStore;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   objectBoxStore = await ObjectBoxStore.create();
-  setupServiceLocator();
+  final preferences = await SharedPreferences.getInstance();
+  setupServiceLocator(preferences);
 
   final adsRemoved = sl<ProgressRepository>().getProgress().adsRemoved;
   await AdService.initialize(adsRemoved: adsRemoved);

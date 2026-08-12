@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../core/constants/ad_constants.dart';
 
-enum RewardType { hint, extraLife, undo, bulb }
+enum RewardType { hint, extraLife, undo, bulb, autoMark }
 
 class AdService {
   static InterstitialAd? _interstitialAd;
@@ -24,6 +24,8 @@ class AdService {
   static bool _isShowingAd = false;
   static bool _adsRemoved = false;
   static bool isInGame = false;
+
+  static bool get isPresentingFullScreenAd => _isShowingAd;
 
   /// Call in main() before runApp()
   static Future<void> initialize({bool adsRemoved = false}) async {
@@ -184,30 +186,48 @@ class AdService {
   }
 
   /// Shows a rewarded ad. Calls onRewarded with the RewardType when complete.
-  static void showRewarded(
+  static bool showRewarded(
     RewardType type, {
     required Function(RewardType) onRewarded,
     bool adsRemoved = false,
+    VoidCallback? onClosed,
   }) {
     _adsRemoved = adsRemoved;
     if (adsRemoved) {
       _rewardedAd?.dispose();
       _rewardedAd = null;
       _rewardedReady = false;
-      return;
+      return false;
     }
 
     final cachedAd = _rewardedAd;
     if (_rewardedReady && cachedAd != null) {
       _rewardedReady = false;
       _rewardedAd = null;
+      cachedAd.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          _isShowingAd = true;
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          _isShowingAd = false;
+          ad.dispose();
+          _preloadRewarded();
+          onClosed?.call();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          _isShowingAd = false;
+          ad.dispose();
+          _preloadRewarded();
+          onClosed?.call();
+        },
+      );
       cachedAd.show(
         onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
           onRewarded(type);
         },
       );
       _preloadRewarded();
-      return;
+      return true;
     }
 
     // Fall back to an on-demand load if the preloaded ad is not ready yet.
@@ -224,11 +244,13 @@ class AdService {
               _isShowingAd = false;
               ad.dispose();
               _preloadRewarded();
+              onClosed?.call();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               _isShowingAd = false;
               ad.dispose();
               _preloadRewarded();
+              onClosed?.call();
             },
           );
           ad.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
@@ -239,9 +261,11 @@ class AdService {
         onAdFailedToLoad: (error) {
           _logLoadFailure('Rewarded ad on-demand', error);
           _preloadRewarded();
+          onClosed?.call();
         },
       ),
     );
+    return true;
   }
 
   /// Starts loading both game-banner placements before GameScreen mounts.

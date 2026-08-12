@@ -5,7 +5,8 @@ void main() {
   group('PuzzleGenerator', () {
     test('gridSizeForLevel returns correct values for levels 1, 9, 16, 31, 50',
         () {
-      expect(PuzzleGenerator.gridSizeForLevel(1, PuzzleTrack.normal), 2);
+      // The guided opening levels use the shipped 4×4 board specification.
+      expect(PuzzleGenerator.gridSizeForLevel(1, PuzzleTrack.normal), 4);
       expect(PuzzleGenerator.gridSizeForLevel(9, PuzzleTrack.normal), 6);
       expect(PuzzleGenerator.gridSizeForLevel(16, PuzzleTrack.normal), 7);
       expect(PuzzleGenerator.gridSizeForLevel(31, PuzzleTrack.normal), 10);
@@ -139,9 +140,9 @@ void main() {
 
     // ── Rule 4: Knight's Move Exclusion ───────────────────
 
-    test('isKnightMoveRuleActive from level 80 on all tracks', () {
-      expect(PuzzleGenerator.isKnightMoveRuleActive(79), false);
-      expect(PuzzleGenerator.isKnightMoveRuleActive(80), true);
+    test('isKnightMoveRuleActive from level 45 on all tracks', () {
+      expect(PuzzleGenerator.isKnightMoveRuleActive(44), false);
+      expect(PuzzleGenerator.isKnightMoveRuleActive(45), true);
       expect(PuzzleGenerator.isKnightMoveRuleActive(100), true);
     });
 
@@ -218,14 +219,14 @@ void main() {
           PuzzleGenerator.configForLevel(50, PuzzleTrack.ultraHard);
       expect(config50ultra.blockFullDiagonal, true);
       expect(config50ultra.blockMinDistance, true);
-      expect(config50ultra.blockKnightMove, false);
+      expect(config50ultra.blockKnightMove, true);
 
-      // Level 80 Normal: should have knightMove only
-      final config80normal =
-          PuzzleGenerator.configForLevel(80, PuzzleTrack.normal);
-      expect(config80normal.blockFullDiagonal, false);
-      expect(config80normal.blockMinDistance, false);
-      expect(config80normal.blockKnightMove, true);
+      // Level 45 Normal: should have knightMove only
+      final config45normal =
+          PuzzleGenerator.configForLevel(45, PuzzleTrack.normal);
+      expect(config45normal.blockFullDiagonal, false);
+      expect(config45normal.blockMinDistance, false);
+      expect(config45normal.blockKnightMove, true);
 
       // Level 80 Ultra: all three rules
       final config80ultra =
@@ -251,7 +252,7 @@ void main() {
       final slowCases = <String>[];
 
       for (final track in PuzzleTrack.values) {
-        for (var level = 1; level <= 50; level++) {
+        for (var level = 1; level <= 80; level++) {
           final config = PuzzleGenerator.configForLevel(level, track);
           final stopwatch = Stopwatch()..start();
           final puzzle = PuzzleGenerator.generate(config);
@@ -263,6 +264,18 @@ void main() {
             reason:
                 'Invalid puzzle for level $level ${track.name} grid ${config.gridSize}',
           );
+          expect(puzzle.lockedIndexes, hasLength(1));
+          expect(
+            puzzle.solutionIndexes,
+            contains(puzzle.lockedIndexes.single),
+          );
+          if (track == PuzzleTrack.ultraHard) {
+            expect(puzzle.mineIndexes.length, greaterThanOrEqualTo(2));
+            expect(
+              puzzle.mineIndexes,
+              isNot(contains(puzzle.lockedIndexes.single)),
+            );
+          }
 
           if (stopwatch.elapsed > const Duration(seconds: 2)) {
             slowCases.add(
@@ -274,6 +287,19 @@ void main() {
       }
 
       expect(slowCases, isEmpty, reason: 'Slow puzzle generation: $slowCases');
+    });
+
+    test('scripted puzzles can explicitly opt out of the locked flower', () {
+      final puzzle = PuzzleGenerator.generate(
+        PuzzleGenerator.configForLevel(
+          5,
+          PuzzleTrack.normal,
+          includeLockedFlower: false,
+        ),
+      );
+
+      expect(puzzle.isValid, isTrue);
+      expect(puzzle.lockedIndexes, isEmpty);
     });
   });
 }

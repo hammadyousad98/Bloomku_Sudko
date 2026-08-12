@@ -50,7 +50,7 @@ DailyChallengeDay dailyChallengeConfigFor(DateTime date) {
       undoReward: 2,
     ),
     DailyChallengeDay(
-      85,
+      50,
       PuzzleTrack.ultraHard,
       hintReward: 3,
       bulbReward: 3,

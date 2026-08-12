@@ -8,6 +8,7 @@ import '../cubit/game_state.dart';
 class GameOverOverlay extends StatefulWidget {
   final GameState state;
   final VoidCallback onWatchAdForLife;
+  final VoidCallback onUseExtraLife;
   final VoidCallback onGiveUp;
   final VoidCallback onTryAgain;
   final VoidCallback onMenu;
@@ -16,6 +17,7 @@ class GameOverOverlay extends StatefulWidget {
     super.key,
     required this.state,
     required this.onWatchAdForLife,
+    required this.onUseExtraLife,
     required this.onGiveUp,
     required this.onTryAgain,
     required this.onMenu,
@@ -90,6 +92,25 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
+        if (widget.state.extraLiveCount > 0) ...[
+          ElevatedButton(
+            onPressed: widget.onUseExtraLife,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.cardColor,
+              foregroundColor: theme.accentColor,
+              minimumSize: const Size(double.infinity, 52),
+              side: BorderSide(color: theme.accentColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text(
+              'Use Extra Life (${widget.state.extraLiveCount})',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         ElevatedButton(
           onPressed: widget.onWatchAdForLife,
           style: ElevatedButton.styleFrom(
@@ -121,7 +142,8 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
 
   Widget _buildGameOverCard(BuildContext context, AppThemeData theme) {
     final minutes = widget.state.elapsed.inMinutes;
-    final seconds = (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    final seconds =
+        (widget.state.elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final timeStr = "$minutes:$seconds";
 
     return Column(

@@ -28,6 +28,11 @@ const List<DailyReward> kDailyRewards = [
   DailyReward(day: 7, hints: 2, bulbs: 1, extraLives: 1, undos: 1),
 ];
 
+DailyReward rewardForStreakDay(int streakDay) {
+  if (streakDay < 1) return kDailyRewards.first;
+  return kDailyRewards[(streakDay - 1) % kDailyRewards.length];
+}
+
 /// Repository for handling daily rewards logic.
 class RewardRepository {
   RewardRepository(this._box);
@@ -37,7 +42,7 @@ class RewardRepository {
   DailyRewardState getState() {
     final existing = _box.getAll();
     if (existing.isNotEmpty) return existing.first;
-    
+
     // New object MUST have id = 0 for ObjectBox to auto-assign
     final defaults = DailyRewardState(); // id defaults to 0
     _box.put(defaults);
@@ -86,12 +91,12 @@ class RewardRepository {
     if (!canClaimToday()) return null;
 
     final state = getState();
-    state.currentStreakDay = (state.currentStreakDay % 7) + 1;
+    state.currentStreakDay += 1;
     state.claimedToday = true;
     state.lastClaimDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    
+
     _box.put(state);
 
-    return kDailyRewards[state.currentStreakDay - 1];
+    return rewardForStreakDay(state.currentStreakDay);
   }
 }

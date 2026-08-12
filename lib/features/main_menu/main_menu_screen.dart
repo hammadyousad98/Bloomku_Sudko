@@ -13,6 +13,8 @@ import '../../widgets/common/themed_icon.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/reward_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../data/repositories/game_session_repository.dart';
+import '../../data/models/player_progress.dart';
 import 'main_menu_cubit.dart';
 
 import '../../services/audio_service.dart';
@@ -224,7 +226,24 @@ class _MainMenuScreenView extends StatelessWidget {
 
   void _playCurrentLevel(BuildContext context) {
     final progress = sl<ProgressRepository>().getProgress();
-    if (progress.normalHighest > maxLevelCount) {
+    final sessionRepo = sl<GameSessionRepository>();
+    final preferredTrack = sessionRepo.lastTrack;
+    final orderedTracks = <PuzzleTrack>[
+      preferredTrack,
+      ...PuzzleTrack.values.where((track) => track != preferredTrack),
+    ];
+    final activeTrack = orderedTracks.firstWhere(
+      (track) => _highestFor(progress, track) <= maxLevelCount,
+      orElse: () => preferredTrack,
+    );
+    final savedSession = sessionRepo.load(activeTrack);
+    final level = savedSession != null &&
+            sl<ProgressRepository>()
+                .isLevelUnlocked(savedSession.levelNumber, activeTrack)
+        ? savedSession.levelNumber
+        : _highestFor(progress, activeTrack);
+
+    if (level > maxLevelCount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You completed every level!')),
       );
@@ -235,9 +254,22 @@ class _MainMenuScreenView extends StatelessWidget {
 
     context.push(
       '/game',
-      extra: {'level': progress.normalHighest, 'track': 'normal'},
+      extra: {'level': level, 'track': _trackName(activeTrack)},
     );
   }
+
+  int _highestFor(PlayerProgress progress, PuzzleTrack track) =>
+      switch (track) {
+        PuzzleTrack.normal => progress.normalHighest,
+        PuzzleTrack.hard => progress.hardHighest,
+        PuzzleTrack.ultraHard => progress.ultraHighest,
+      };
+
+  String _trackName(PuzzleTrack track) => switch (track) {
+        PuzzleTrack.normal => 'normal',
+        PuzzleTrack.hard => 'hard',
+        PuzzleTrack.ultraHard => 'ultra',
+      };
 
   void _showThemeSelector(BuildContext context) {
     showModalBottomSheet(

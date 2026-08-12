@@ -14,9 +14,13 @@ import 'package:objectbox/internal.dart'
 import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
+import '../../data/models/collection_progress.dart';
+import '../../data/models/daily_challenge_history.dart';
 import '../../data/models/daily_challenge_state.dart';
 import '../../data/models/daily_reward_state.dart';
+import '../../data/models/level_result.dart';
 import '../../data/models/player_progress.dart';
+import '../../data/models/session_goal_state.dart';
 import '../../data/models/settings_model.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
@@ -59,7 +63,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(2, 3079320991520534107),
     name: 'PlayerProgress',
-    lastPropertyId: const obx_int.IdUid(15, 8626051969272955424),
+    lastPropertyId: const obx_int.IdUid(30, 6580335707341808673),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -152,6 +156,96 @@ final _entities = <obx_int.ModelEntity>[
         type: 1,
         flags: 0,
       ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(16, 6024443630607364343),
+        name: 'autoMarks',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(17, 4793261697041302465),
+        name: 'streakFreezes',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(18, 8545759506457465466),
+        name: 'economyMigrationVersion',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(19, 8111362212313214020),
+        name: 'unlockedChapterIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(20, 1695221151908553541),
+        name: 'unlockedThemeIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(21, 391467633566538846),
+        name: 'unlockedBoardSkinIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(22, 7245383822563453332),
+        name: 'unlockedObjectIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(23, 2588952170418149018),
+        name: 'unlockedMusicTrackIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(24, 2570097699636676006),
+        name: 'tutorialBoardsCompleted',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(25, 7024861192841085882),
+        name: 'tutorialRewardClaimsMask',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(26, 1693850080958845703),
+        name: 'guidedTutorialSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(27, 5832628826032834488),
+        name: 'mineRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(28, 4563920293265591549),
+        name: 'rowColumnRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(29, 235578661340265752),
+        name: 'colorRegionRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(30, 6580335707341808673),
+        name: 'noTouchRuleSeen',
+        type: 1,
+        flags: 0,
+      ),
     ],
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
@@ -236,6 +330,407 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(5, 3854791779522442797),
+    name: 'CollectionProgress',
+    lastPropertyId: const obx_int.IdUid(8, 1006105623331626178),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 3269501233845679994),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 6427900487527410895),
+        name: 'chapterId',
+        type: 9,
+        flags: 2080,
+        indexId: const obx_int.IdUid(1, 5458417586295440742),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 2509480875765865237),
+        name: 'collectedObjectIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 7591143336589567239),
+        name: 'collectedCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 1615202633771031106),
+        name: 'targetCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 5937926744148830560),
+        name: 'chapterCompleted',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 246717238560058179),
+        name: 'completionRewardClaimed',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 1006105623331626178),
+        name: 'updatedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(6, 1649018071184635481),
+    name: 'DailyChallengeHistory',
+    lastPropertyId: const obx_int.IdUid(11, 6575809934551693912),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 591276137196382352),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 2552659360871192782),
+        name: 'dateKey',
+        type: 9,
+        flags: 2080,
+        indexId: const obx_int.IdUid(2, 9197839090331505310),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 2297107930724097950),
+        name: 'completed',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 8780835046599959182),
+        name: 'bestTimeMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 1582527519710512449),
+        name: 'bestScore',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 3620430446546992430),
+        name: 'lowestMistakes',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 1069757916594253636),
+        name: 'streakAtCompletion',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 2317599189167524787),
+        name: 'shareGridData',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 8701851699997888954),
+        name: 'completionCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(10, 2543607480350551189),
+        name: 'firstCompletedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(11, 6575809934551693912),
+        name: 'lastCompletedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(7, 6900283015633308748),
+    name: 'LevelResult',
+    lastPropertyId: const obx_int.IdUid(10, 2148120277975907860),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 6559717033530834195),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 4930241454182458839),
+        name: 'resultKey',
+        type: 9,
+        flags: 2080,
+        indexId: const obx_int.IdUid(3, 1211719344811935357),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 1065868771184299418),
+        name: 'levelNumber',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 3448621843682095189),
+        name: 'track',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 672060433984064166),
+        name: 'bestTimeMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 2405323744254799520),
+        name: 'bestScore',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 7381168325617396453),
+        name: 'highestStars',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 7627304385284066888),
+        name: 'completionCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 7735594963586872149),
+        name: 'bestMistakeCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(10, 2148120277975907860),
+        name: 'lastCompletedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(8, 5471307821481285302),
+    name: 'PuzzleResult',
+    lastPropertyId: const obx_int.IdUid(16, 7342875526957644673),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 5423135459517151114),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 2377929292451822807),
+        name: 'puzzleKey',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 8827446751866105091),
+        name: 'mode',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 92946430204397998),
+        name: 'levelNumber',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 4724912898979393975),
+        name: 'track',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 8847495100656337892),
+        name: 'completed',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 1362955893357511840),
+        name: 'elapsedMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 544500198649308589),
+        name: 'score',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 8878154557183680424),
+        name: 'stars',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(10, 2372633746812889459),
+        name: 'mistakes',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(11, 6038069779208425329),
+        name: 'hintsUsed',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(12, 5863399991804189739),
+        name: 'undosUsed',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(13, 3300463385832222960),
+        name: 'solveRowsUsed',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(14, 3610234071726138061),
+        name: 'autoMarksUsed',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(15, 3723623854066533727),
+        name: 'extraLivesUsed',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(16, 7342875526957644673),
+        name: 'playedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(9, 2973105899891545808),
+    name: 'SessionGoalState',
+    lastPropertyId: const obx_int.IdUid(13, 8621792914837924454),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 3791629179655781185),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 4668047722985289912),
+        name: 'goalId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 6004890886986412793),
+        name: 'goalType',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 8561922896336435803),
+        name: 'target',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 2309226153884516560),
+        name: 'progress',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 8290189494920182964),
+        name: 'rewardType',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 5189294354973760528),
+        name: 'rewardAmount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 2993423577491710586),
+        name: 'collectionRewardProgress',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 1662099106068185521),
+        name: 'completed',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(10, 5691872336450260539),
+        name: 'rewardClaimed',
+        type: 1,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(11, 7700568983555205546),
+        name: 'startedAtMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(12, 3252898073842143800),
+        name: 'expiresAtMs',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(13, 8621792914837924454),
+        name: 'qualifyingPuzzleIdsJson',
+        type: 9,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -281,8 +776,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(4, 1573346150561790280),
-    lastIndexId: const obx_int.IdUid(0, 0),
+    lastEntityId: const obx_int.IdUid(9, 2973105899891545808),
+    lastIndexId: const obx_int.IdUid(3, 1211719344811935357),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [],
@@ -347,7 +842,22 @@ obx_int.ModelDefinition getObjectBoxModel() {
         object.id = id;
       },
       objectToFB: (PlayerProgress object, fb.Builder fbb) {
-        fbb.startTable(16);
+        final unlockedChapterIdsJsonOffset = fbb.writeString(
+          object.unlockedChapterIdsJson,
+        );
+        final unlockedThemeIdsJsonOffset = fbb.writeString(
+          object.unlockedThemeIdsJson,
+        );
+        final unlockedBoardSkinIdsJsonOffset = fbb.writeString(
+          object.unlockedBoardSkinIdsJson,
+        );
+        final unlockedObjectIdsJsonOffset = fbb.writeString(
+          object.unlockedObjectIdsJson,
+        );
+        final unlockedMusicTrackIdsJsonOffset = fbb.writeString(
+          object.unlockedMusicTrackIdsJson,
+        );
+        fbb.startTable(31);
         fbb.addInt64(0, object.id);
         fbb.addInt64(1, object.normalHighest);
         fbb.addInt64(2, object.hardHighest);
@@ -363,6 +873,21 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addBool(12, object.diagonalRuleSeen);
         fbb.addBool(13, object.minDistanceRuleSeen);
         fbb.addBool(14, object.knightMoveRuleSeen);
+        fbb.addInt64(15, object.autoMarks);
+        fbb.addInt64(16, object.streakFreezes);
+        fbb.addInt64(17, object.economyMigrationVersion);
+        fbb.addOffset(18, unlockedChapterIdsJsonOffset);
+        fbb.addOffset(19, unlockedThemeIdsJsonOffset);
+        fbb.addOffset(20, unlockedBoardSkinIdsJsonOffset);
+        fbb.addOffset(21, unlockedObjectIdsJsonOffset);
+        fbb.addOffset(22, unlockedMusicTrackIdsJsonOffset);
+        fbb.addInt64(23, object.tutorialBoardsCompleted);
+        fbb.addInt64(24, object.tutorialRewardClaimsMask);
+        fbb.addBool(25, object.guidedTutorialSeen);
+        fbb.addBool(26, object.mineRuleSeen);
+        fbb.addBool(27, object.rowColumnRuleSeen);
+        fbb.addBool(28, object.colorRegionRuleSeen);
+        fbb.addBool(29, object.noTouchRuleSeen);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -439,6 +964,81 @@ obx_int.ModelDefinition getObjectBoxModel() {
             buffer,
             rootOffset,
             32,
+            false,
+          )
+          ..autoMarks = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            34,
+            0,
+          )
+          ..streakFreezes = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            36,
+            0,
+          )
+          ..economyMigrationVersion = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            38,
+            0,
+          )
+          ..unlockedChapterIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 40, '')
+          ..unlockedThemeIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 42, '')
+          ..unlockedBoardSkinIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 44, '')
+          ..unlockedObjectIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 46, '')
+          ..unlockedMusicTrackIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 48, '')
+          ..tutorialBoardsCompleted = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            50,
+            0,
+          )
+          ..tutorialRewardClaimsMask = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            52,
+            0,
+          )
+          ..guidedTutorialSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            54,
+            false,
+          )
+          ..mineRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            56,
+            false,
+          )
+          ..rowColumnRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            58,
+            false,
+          )
+          ..colorRegionRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            60,
+            false,
+          )
+          ..noTouchRuleSeen = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            62,
             false,
           );
 
@@ -549,6 +1149,460 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    CollectionProgress: obx_int.EntityDefinition<CollectionProgress>(
+      model: _entities[4],
+      toOneRelations: (CollectionProgress object) => [],
+      toManyRelations: (CollectionProgress object) => {},
+      getId: (CollectionProgress object) => object.id,
+      setId: (CollectionProgress object, int id) {
+        object.id = id;
+      },
+      objectToFB: (CollectionProgress object, fb.Builder fbb) {
+        final chapterIdOffset = fbb.writeString(object.chapterId);
+        final collectedObjectIdsJsonOffset = fbb.writeString(
+          object.collectedObjectIdsJson,
+        );
+        fbb.startTable(9);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, chapterIdOffset);
+        fbb.addOffset(2, collectedObjectIdsJsonOffset);
+        fbb.addInt64(3, object.collectedCount);
+        fbb.addInt64(4, object.targetCount);
+        fbb.addBool(5, object.chapterCompleted);
+        fbb.addBool(6, object.completionRewardClaimed);
+        fbb.addInt64(7, object.updatedAtMs);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = CollectionProgress()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..chapterId = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..collectedObjectIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 8, '')
+          ..collectedCount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            10,
+            0,
+          )
+          ..targetCount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            12,
+            0,
+          )
+          ..chapterCompleted = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            14,
+            false,
+          )
+          ..completionRewardClaimed = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            16,
+            false,
+          )
+          ..updatedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            18,
+            0,
+          );
+
+        return object;
+      },
+    ),
+    DailyChallengeHistory: obx_int.EntityDefinition<DailyChallengeHistory>(
+      model: _entities[5],
+      toOneRelations: (DailyChallengeHistory object) => [],
+      toManyRelations: (DailyChallengeHistory object) => {},
+      getId: (DailyChallengeHistory object) => object.id,
+      setId: (DailyChallengeHistory object, int id) {
+        object.id = id;
+      },
+      objectToFB: (DailyChallengeHistory object, fb.Builder fbb) {
+        final dateKeyOffset = fbb.writeString(object.dateKey);
+        final shareGridDataOffset = fbb.writeString(object.shareGridData);
+        fbb.startTable(12);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, dateKeyOffset);
+        fbb.addBool(2, object.completed);
+        fbb.addInt64(3, object.bestTimeMs);
+        fbb.addInt64(4, object.bestScore);
+        fbb.addInt64(5, object.lowestMistakes);
+        fbb.addInt64(6, object.streakAtCompletion);
+        fbb.addOffset(7, shareGridDataOffset);
+        fbb.addInt64(8, object.completionCount);
+        fbb.addInt64(9, object.firstCompletedAtMs);
+        fbb.addInt64(10, object.lastCompletedAtMs);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = DailyChallengeHistory()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..dateKey = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..completed = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            8,
+            false,
+          )
+          ..bestTimeMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            10,
+            0,
+          )
+          ..bestScore = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            12,
+            0,
+          )
+          ..lowestMistakes = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            14,
+            0,
+          )
+          ..streakAtCompletion = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            16,
+            0,
+          )
+          ..shareGridData = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 18, '')
+          ..completionCount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            20,
+            0,
+          )
+          ..firstCompletedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            22,
+            0,
+          )
+          ..lastCompletedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            24,
+            0,
+          );
+
+        return object;
+      },
+    ),
+    LevelResult: obx_int.EntityDefinition<LevelResult>(
+      model: _entities[6],
+      toOneRelations: (LevelResult object) => [],
+      toManyRelations: (LevelResult object) => {},
+      getId: (LevelResult object) => object.id,
+      setId: (LevelResult object, int id) {
+        object.id = id;
+      },
+      objectToFB: (LevelResult object, fb.Builder fbb) {
+        final resultKeyOffset = fbb.writeString(object.resultKey);
+        final trackOffset = fbb.writeString(object.track);
+        fbb.startTable(11);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, resultKeyOffset);
+        fbb.addInt64(2, object.levelNumber);
+        fbb.addOffset(3, trackOffset);
+        fbb.addInt64(4, object.bestTimeMs);
+        fbb.addInt64(5, object.bestScore);
+        fbb.addInt64(6, object.highestStars);
+        fbb.addInt64(7, object.completionCount);
+        fbb.addInt64(8, object.bestMistakeCount);
+        fbb.addInt64(9, object.lastCompletedAtMs);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = LevelResult()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..resultKey = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..levelNumber = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            8,
+            0,
+          )
+          ..track = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 10, '')
+          ..bestTimeMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            12,
+            0,
+          )
+          ..bestScore = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            14,
+            0,
+          )
+          ..highestStars = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            16,
+            0,
+          )
+          ..completionCount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            18,
+            0,
+          )
+          ..bestMistakeCount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            20,
+            0,
+          )
+          ..lastCompletedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            22,
+            0,
+          );
+
+        return object;
+      },
+    ),
+    PuzzleResult: obx_int.EntityDefinition<PuzzleResult>(
+      model: _entities[7],
+      toOneRelations: (PuzzleResult object) => [],
+      toManyRelations: (PuzzleResult object) => {},
+      getId: (PuzzleResult object) => object.id,
+      setId: (PuzzleResult object, int id) {
+        object.id = id;
+      },
+      objectToFB: (PuzzleResult object, fb.Builder fbb) {
+        final puzzleKeyOffset = fbb.writeString(object.puzzleKey);
+        final modeOffset = fbb.writeString(object.mode);
+        final trackOffset = fbb.writeString(object.track);
+        fbb.startTable(17);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, puzzleKeyOffset);
+        fbb.addOffset(2, modeOffset);
+        fbb.addInt64(3, object.levelNumber);
+        fbb.addOffset(4, trackOffset);
+        fbb.addBool(5, object.completed);
+        fbb.addInt64(6, object.elapsedMs);
+        fbb.addInt64(7, object.score);
+        fbb.addInt64(8, object.stars);
+        fbb.addInt64(9, object.mistakes);
+        fbb.addInt64(10, object.hintsUsed);
+        fbb.addInt64(11, object.undosUsed);
+        fbb.addInt64(12, object.solveRowsUsed);
+        fbb.addInt64(13, object.autoMarksUsed);
+        fbb.addInt64(14, object.extraLivesUsed);
+        fbb.addInt64(15, object.playedAtMs);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = PuzzleResult()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..puzzleKey = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..mode = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 8, '')
+          ..levelNumber = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            10,
+            0,
+          )
+          ..track = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 12, '')
+          ..completed = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            14,
+            false,
+          )
+          ..elapsedMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            16,
+            0,
+          )
+          ..score = const fb.Int64Reader().vTableGet(buffer, rootOffset, 18, 0)
+          ..stars = const fb.Int64Reader().vTableGet(buffer, rootOffset, 20, 0)
+          ..mistakes = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            22,
+            0,
+          )
+          ..hintsUsed = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            24,
+            0,
+          )
+          ..undosUsed = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            26,
+            0,
+          )
+          ..solveRowsUsed = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            28,
+            0,
+          )
+          ..autoMarksUsed = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            30,
+            0,
+          )
+          ..extraLivesUsed = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            32,
+            0,
+          )
+          ..playedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            34,
+            0,
+          );
+
+        return object;
+      },
+    ),
+    SessionGoalState: obx_int.EntityDefinition<SessionGoalState>(
+      model: _entities[8],
+      toOneRelations: (SessionGoalState object) => [],
+      toManyRelations: (SessionGoalState object) => {},
+      getId: (SessionGoalState object) => object.id,
+      setId: (SessionGoalState object, int id) {
+        object.id = id;
+      },
+      objectToFB: (SessionGoalState object, fb.Builder fbb) {
+        final goalIdOffset = fbb.writeString(object.goalId);
+        final goalTypeOffset = fbb.writeString(object.goalType);
+        final rewardTypeOffset = fbb.writeString(object.rewardType);
+        final qualifyingPuzzleIdsJsonOffset = fbb.writeString(
+          object.qualifyingPuzzleIdsJson,
+        );
+        fbb.startTable(14);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, goalIdOffset);
+        fbb.addOffset(2, goalTypeOffset);
+        fbb.addInt64(3, object.target);
+        fbb.addInt64(4, object.progress);
+        fbb.addOffset(5, rewardTypeOffset);
+        fbb.addInt64(6, object.rewardAmount);
+        fbb.addInt64(7, object.collectionRewardProgress);
+        fbb.addBool(8, object.completed);
+        fbb.addBool(9, object.rewardClaimed);
+        fbb.addInt64(10, object.startedAtMs);
+        fbb.addInt64(11, object.expiresAtMs);
+        fbb.addOffset(12, qualifyingPuzzleIdsJsonOffset);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+
+        final object = SessionGoalState()
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0)
+          ..goalId = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 6, '')
+          ..goalType = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 8, '')
+          ..target = const fb.Int64Reader().vTableGet(buffer, rootOffset, 10, 0)
+          ..progress = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            12,
+            0,
+          )
+          ..rewardType = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 14, '')
+          ..rewardAmount = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            16,
+            0,
+          )
+          ..collectionRewardProgress = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            18,
+            0,
+          )
+          ..completed = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            20,
+            false,
+          )
+          ..rewardClaimed = const fb.BoolReader().vTableGet(
+            buffer,
+            rootOffset,
+            22,
+            false,
+          )
+          ..startedAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            24,
+            0,
+          )
+          ..expiresAtMs = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            26,
+            0,
+          )
+          ..qualifyingPuzzleIdsJson = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 28, '');
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -653,6 +1707,76 @@ class PlayerProgress_ {
   static final knightMoveRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
     _entities[1].properties[14],
   );
+
+  /// See [PlayerProgress.autoMarks].
+  static final autoMarks = obx.QueryIntegerProperty<PlayerProgress>(
+    _entities[1].properties[15],
+  );
+
+  /// See [PlayerProgress.streakFreezes].
+  static final streakFreezes = obx.QueryIntegerProperty<PlayerProgress>(
+    _entities[1].properties[16],
+  );
+
+  /// See [PlayerProgress.economyMigrationVersion].
+  static final economyMigrationVersion =
+      obx.QueryIntegerProperty<PlayerProgress>(_entities[1].properties[17]);
+
+  /// See [PlayerProgress.unlockedChapterIdsJson].
+  static final unlockedChapterIdsJson = obx.QueryStringProperty<PlayerProgress>(
+    _entities[1].properties[18],
+  );
+
+  /// See [PlayerProgress.unlockedThemeIdsJson].
+  static final unlockedThemeIdsJson = obx.QueryStringProperty<PlayerProgress>(
+    _entities[1].properties[19],
+  );
+
+  /// See [PlayerProgress.unlockedBoardSkinIdsJson].
+  static final unlockedBoardSkinIdsJson =
+      obx.QueryStringProperty<PlayerProgress>(_entities[1].properties[20]);
+
+  /// See [PlayerProgress.unlockedObjectIdsJson].
+  static final unlockedObjectIdsJson = obx.QueryStringProperty<PlayerProgress>(
+    _entities[1].properties[21],
+  );
+
+  /// See [PlayerProgress.unlockedMusicTrackIdsJson].
+  static final unlockedMusicTrackIdsJson =
+      obx.QueryStringProperty<PlayerProgress>(_entities[1].properties[22]);
+
+  /// See [PlayerProgress.tutorialBoardsCompleted].
+  static final tutorialBoardsCompleted =
+      obx.QueryIntegerProperty<PlayerProgress>(_entities[1].properties[23]);
+
+  /// See [PlayerProgress.tutorialRewardClaimsMask].
+  static final tutorialRewardClaimsMask =
+      obx.QueryIntegerProperty<PlayerProgress>(_entities[1].properties[24]);
+
+  /// See [PlayerProgress.guidedTutorialSeen].
+  static final guidedTutorialSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[25],
+  );
+
+  /// See [PlayerProgress.mineRuleSeen].
+  static final mineRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[26],
+  );
+
+  /// See [PlayerProgress.rowColumnRuleSeen].
+  static final rowColumnRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[27],
+  );
+
+  /// See [PlayerProgress.colorRegionRuleSeen].
+  static final colorRegionRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[28],
+  );
+
+  /// See [PlayerProgress.noTouchRuleSeen].
+  static final noTouchRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
+    _entities[1].properties[29],
+  );
 }
 
 /// [SettingsModel] entity fields to define ObjectBox queries.
@@ -706,4 +1830,309 @@ class DailyChallengeState_ {
   /// See [DailyChallengeState.totalChallengesCompleted].
   static final totalChallengesCompleted =
       obx.QueryIntegerProperty<DailyChallengeState>(_entities[3].properties[4]);
+}
+
+/// [CollectionProgress] entity fields to define ObjectBox queries.
+class CollectionProgress_ {
+  /// See [CollectionProgress.id].
+  static final id = obx.QueryIntegerProperty<CollectionProgress>(
+    _entities[4].properties[0],
+  );
+
+  /// See [CollectionProgress.chapterId].
+  static final chapterId = obx.QueryStringProperty<CollectionProgress>(
+    _entities[4].properties[1],
+  );
+
+  /// See [CollectionProgress.collectedObjectIdsJson].
+  static final collectedObjectIdsJson =
+      obx.QueryStringProperty<CollectionProgress>(_entities[4].properties[2]);
+
+  /// See [CollectionProgress.collectedCount].
+  static final collectedCount = obx.QueryIntegerProperty<CollectionProgress>(
+    _entities[4].properties[3],
+  );
+
+  /// See [CollectionProgress.targetCount].
+  static final targetCount = obx.QueryIntegerProperty<CollectionProgress>(
+    _entities[4].properties[4],
+  );
+
+  /// See [CollectionProgress.chapterCompleted].
+  static final chapterCompleted = obx.QueryBooleanProperty<CollectionProgress>(
+    _entities[4].properties[5],
+  );
+
+  /// See [CollectionProgress.completionRewardClaimed].
+  static final completionRewardClaimed =
+      obx.QueryBooleanProperty<CollectionProgress>(_entities[4].properties[6]);
+
+  /// See [CollectionProgress.updatedAtMs].
+  static final updatedAtMs = obx.QueryIntegerProperty<CollectionProgress>(
+    _entities[4].properties[7],
+  );
+}
+
+/// [DailyChallengeHistory] entity fields to define ObjectBox queries.
+class DailyChallengeHistory_ {
+  /// See [DailyChallengeHistory.id].
+  static final id = obx.QueryIntegerProperty<DailyChallengeHistory>(
+    _entities[5].properties[0],
+  );
+
+  /// See [DailyChallengeHistory.dateKey].
+  static final dateKey = obx.QueryStringProperty<DailyChallengeHistory>(
+    _entities[5].properties[1],
+  );
+
+  /// See [DailyChallengeHistory.completed].
+  static final completed = obx.QueryBooleanProperty<DailyChallengeHistory>(
+    _entities[5].properties[2],
+  );
+
+  /// See [DailyChallengeHistory.bestTimeMs].
+  static final bestTimeMs = obx.QueryIntegerProperty<DailyChallengeHistory>(
+    _entities[5].properties[3],
+  );
+
+  /// See [DailyChallengeHistory.bestScore].
+  static final bestScore = obx.QueryIntegerProperty<DailyChallengeHistory>(
+    _entities[5].properties[4],
+  );
+
+  /// See [DailyChallengeHistory.lowestMistakes].
+  static final lowestMistakes = obx.QueryIntegerProperty<DailyChallengeHistory>(
+    _entities[5].properties[5],
+  );
+
+  /// See [DailyChallengeHistory.streakAtCompletion].
+  static final streakAtCompletion =
+      obx.QueryIntegerProperty<DailyChallengeHistory>(
+        _entities[5].properties[6],
+      );
+
+  /// See [DailyChallengeHistory.shareGridData].
+  static final shareGridData = obx.QueryStringProperty<DailyChallengeHistory>(
+    _entities[5].properties[7],
+  );
+
+  /// See [DailyChallengeHistory.completionCount].
+  static final completionCount =
+      obx.QueryIntegerProperty<DailyChallengeHistory>(
+        _entities[5].properties[8],
+      );
+
+  /// See [DailyChallengeHistory.firstCompletedAtMs].
+  static final firstCompletedAtMs =
+      obx.QueryIntegerProperty<DailyChallengeHistory>(
+        _entities[5].properties[9],
+      );
+
+  /// See [DailyChallengeHistory.lastCompletedAtMs].
+  static final lastCompletedAtMs =
+      obx.QueryIntegerProperty<DailyChallengeHistory>(
+        _entities[5].properties[10],
+      );
+}
+
+/// [LevelResult] entity fields to define ObjectBox queries.
+class LevelResult_ {
+  /// See [LevelResult.id].
+  static final id = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[0],
+  );
+
+  /// See [LevelResult.resultKey].
+  static final resultKey = obx.QueryStringProperty<LevelResult>(
+    _entities[6].properties[1],
+  );
+
+  /// See [LevelResult.levelNumber].
+  static final levelNumber = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[2],
+  );
+
+  /// See [LevelResult.track].
+  static final track = obx.QueryStringProperty<LevelResult>(
+    _entities[6].properties[3],
+  );
+
+  /// See [LevelResult.bestTimeMs].
+  static final bestTimeMs = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[4],
+  );
+
+  /// See [LevelResult.bestScore].
+  static final bestScore = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[5],
+  );
+
+  /// See [LevelResult.highestStars].
+  static final highestStars = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[6],
+  );
+
+  /// See [LevelResult.completionCount].
+  static final completionCount = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[7],
+  );
+
+  /// See [LevelResult.bestMistakeCount].
+  static final bestMistakeCount = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[8],
+  );
+
+  /// See [LevelResult.lastCompletedAtMs].
+  static final lastCompletedAtMs = obx.QueryIntegerProperty<LevelResult>(
+    _entities[6].properties[9],
+  );
+}
+
+/// [PuzzleResult] entity fields to define ObjectBox queries.
+class PuzzleResult_ {
+  /// See [PuzzleResult.id].
+  static final id = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[0],
+  );
+
+  /// See [PuzzleResult.puzzleKey].
+  static final puzzleKey = obx.QueryStringProperty<PuzzleResult>(
+    _entities[7].properties[1],
+  );
+
+  /// See [PuzzleResult.mode].
+  static final mode = obx.QueryStringProperty<PuzzleResult>(
+    _entities[7].properties[2],
+  );
+
+  /// See [PuzzleResult.levelNumber].
+  static final levelNumber = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[3],
+  );
+
+  /// See [PuzzleResult.track].
+  static final track = obx.QueryStringProperty<PuzzleResult>(
+    _entities[7].properties[4],
+  );
+
+  /// See [PuzzleResult.completed].
+  static final completed = obx.QueryBooleanProperty<PuzzleResult>(
+    _entities[7].properties[5],
+  );
+
+  /// See [PuzzleResult.elapsedMs].
+  static final elapsedMs = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[6],
+  );
+
+  /// See [PuzzleResult.score].
+  static final score = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[7],
+  );
+
+  /// See [PuzzleResult.stars].
+  static final stars = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[8],
+  );
+
+  /// See [PuzzleResult.mistakes].
+  static final mistakes = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[9],
+  );
+
+  /// See [PuzzleResult.hintsUsed].
+  static final hintsUsed = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[10],
+  );
+
+  /// See [PuzzleResult.undosUsed].
+  static final undosUsed = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[11],
+  );
+
+  /// See [PuzzleResult.solveRowsUsed].
+  static final solveRowsUsed = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[12],
+  );
+
+  /// See [PuzzleResult.autoMarksUsed].
+  static final autoMarksUsed = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[13],
+  );
+
+  /// See [PuzzleResult.extraLivesUsed].
+  static final extraLivesUsed = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[14],
+  );
+
+  /// See [PuzzleResult.playedAtMs].
+  static final playedAtMs = obx.QueryIntegerProperty<PuzzleResult>(
+    _entities[7].properties[15],
+  );
+}
+
+/// [SessionGoalState] entity fields to define ObjectBox queries.
+class SessionGoalState_ {
+  /// See [SessionGoalState.id].
+  static final id = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[0],
+  );
+
+  /// See [SessionGoalState.goalId].
+  static final goalId = obx.QueryStringProperty<SessionGoalState>(
+    _entities[8].properties[1],
+  );
+
+  /// See [SessionGoalState.goalType].
+  static final goalType = obx.QueryStringProperty<SessionGoalState>(
+    _entities[8].properties[2],
+  );
+
+  /// See [SessionGoalState.target].
+  static final target = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[3],
+  );
+
+  /// See [SessionGoalState.progress].
+  static final progress = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[4],
+  );
+
+  /// See [SessionGoalState.rewardType].
+  static final rewardType = obx.QueryStringProperty<SessionGoalState>(
+    _entities[8].properties[5],
+  );
+
+  /// See [SessionGoalState.rewardAmount].
+  static final rewardAmount = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[6],
+  );
+
+  /// See [SessionGoalState.collectionRewardProgress].
+  static final collectionRewardProgress =
+      obx.QueryIntegerProperty<SessionGoalState>(_entities[8].properties[7]);
+
+  /// See [SessionGoalState.completed].
+  static final completed = obx.QueryBooleanProperty<SessionGoalState>(
+    _entities[8].properties[8],
+  );
+
+  /// See [SessionGoalState.rewardClaimed].
+  static final rewardClaimed = obx.QueryBooleanProperty<SessionGoalState>(
+    _entities[8].properties[9],
+  );
+
+  /// See [SessionGoalState.startedAtMs].
+  static final startedAtMs = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[10],
+  );
+
+  /// See [SessionGoalState.expiresAtMs].
+  static final expiresAtMs = obx.QueryIntegerProperty<SessionGoalState>(
+    _entities[8].properties[11],
+  );
+
+  /// See [SessionGoalState.qualifyingPuzzleIdsJson].
+  static final qualifyingPuzzleIdsJson =
+      obx.QueryStringProperty<SessionGoalState>(_entities[8].properties[12]);
 }

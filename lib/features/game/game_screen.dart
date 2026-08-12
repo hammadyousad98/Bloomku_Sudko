@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -11,6 +13,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/daily_challenge_repository.dart';
 import '../../data/repositories/settings_repository.dart';
+import '../../data/repositories/game_session_repository.dart';
 import '../../core/utils/puzzle_generator.dart';
 import '../tutorial/tutorial_cubit.dart';
 import '../tutorial/tutorial_screen.dart';
@@ -52,6 +55,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _wasGuidedModeActive = false;
   final GlobalKey _gridKey = GlobalKey();
   final List<GlobalKey> _heartKeys = List.generate(3, (_) => GlobalKey());
+  bool _blockGridInput = false;
 
   @override
   void initState() {
@@ -59,7 +63,9 @@ class _GameScreenState extends State<GameScreen> {
     final progressRepo = GetIt.I<ProgressRepository>();
     final settingsRepo = GetIt.I<SettingsRepository>();
     final dailyChallengeRepo = GetIt.I<DailyChallengeRepository>();
-    _cubit = GameCubit(progressRepo, settingsRepo, dailyChallengeRepo);
+    final sessionRepo = GetIt.I<GameSessionRepository>();
+    _cubit =
+        GameCubit(progressRepo, settingsRepo, dailyChallengeRepo, sessionRepo);
 
     if (widget.isDailyChallenge) {
       _cubit.startDailyChallenge();
@@ -93,6 +99,12 @@ class _GameScreenState extends State<GameScreen> {
     context.go('/menu');
   }
 
+  Future<void> _openSettings() async {
+    _cubit.pauseGame();
+    await context.push('/settings');
+    if (mounted) _cubit.resumeGame();
+  }
+
   void _startNextLevel() {
     if (_cubit.state.guidedModeActive) {
       _cubit.advanceGuidedLevel();
@@ -119,7 +131,8 @@ class _GameScreenState extends State<GameScreen> {
     if (_cubit.state.mode == GameMode.dailyChallenge) {
       _cubit.startDailyChallenge();
     } else {
-      _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack, forceRestart: true);
+      _cubit.startLevel(_cubit.state.levelNumber, _cubit.state.activeTrack,
+          forceRestart: true);
     }
   }
 
@@ -156,16 +169,19 @@ class _GameScreenState extends State<GameScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _cubit.pauseGame();
       RuleTutorialDialog.show(context, slide).then((_) {
+        if (!mounted) return;
         _isShowingTutorial = false;
         _cubit.dismissNextRuleTutorial(ruleKey);
+        _cubit.resumeGame();
       });
     });
   }
 
   void _playHeartbreakAnimation(int tileIndex, int targetHeartIndex) {
     if (targetHeartIndex < 0 || targetHeartIndex >= _heartKeys.length) return;
-    
+
     final gridContext = _gridKey.currentContext;
     final heartContext = _heartKeys[targetHeartIndex].currentContext;
     if (gridContext == null || heartContext == null) return;
@@ -176,10 +192,10 @@ class _GameScreenState extends State<GameScreen> {
     final gridSize = _cubit.state.puzzle.gridSize;
     final cellWidth = (gridBox.size.width - (gridSize - 1) * 4.0) / gridSize;
     final cellHeight = (gridBox.size.height - (gridSize - 1) * 4.0) / gridSize;
-    
+
     final row = tileIndex ~/ gridSize;
     final col = tileIndex % gridSize;
-    
+
     final startOffset = gridBox.localToGlobal(
       Offset(
         col * (cellWidth + 4.0) + cellWidth / 2,
@@ -205,7 +221,9 @@ class _GameScreenState extends State<GameScreen> {
         body: SafeArea(
           child: BlocConsumer<GameCubit, GameState>(
             listener: (context, state) {
-              if (_wasGuidedModeActive && !state.guidedModeActive && state.phase == GamePhase.levelComplete) {
+              if (_wasGuidedModeActive &&
+                  !state.guidedModeActive &&
+                  state.phase == GamePhase.levelComplete) {
                 _goToMenu();
               }
               _wasGuidedModeActive = state.guidedModeActive;
@@ -214,7 +232,7 @@ class _GameScreenState extends State<GameScreen> {
               if (state.pendingRuleTutorials.isNotEmpty) {
                 _showPendingTutorials(state);
               }
-              
+
               if (state.rewardMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -227,8 +245,10 @@ class _GameScreenState extends State<GameScreen> {
 
               if (state.lifeLostToken > _lastLifeLostToken) {
                 _lastLifeLostToken = state.lifeLostToken;
-                if (state.lifeLostTileIndex != null && state.lifeLostTargetHeartIndex != null) {
-                  _playHeartbreakAnimation(state.lifeLostTileIndex!, state.lifeLostTargetHeartIndex!);
+                if (state.lifeLostTileIndex != null &&
+                    state.lifeLostTargetHeartIndex != null) {
+                  _playHeartbreakAnimation(state.lifeLostTileIndex!,
+                      state.lifeLostTargetHeartIndex!);
                 }
               }
             },
@@ -262,21 +282,32 @@ class _GameScreenState extends State<GameScreen> {
                   TopBar(
                     level: state.levelNumber,
                     gridSize: state.puzzle.gridSize,
+                    onSettings: _openSettings,
                   ),
-                  if (state.guidedModeActive && state.guidedInstructionText != null)
+                  if (state.guidedModeActive &&
+                      state.guidedInstructionText != null)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (state.levelNumber == 1 && state.guidedStepIndex == 0 && state.guidedTeachingMarker)
+                          if (state.levelNumber == 1 &&
+                              state.guidedStepIndex == 0 &&
+                              state.guidedTeachingMarker)
                             Padding(
-                              padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
+                              padding:
+                                  const EdgeInsets.only(left: 8.0, bottom: 4.0),
                               child: Row(
                                 children: [
-                                  Icon(Icons.school, size: 14, color: theme.accentColor),
+                                  Icon(Icons.school,
+                                      size: 14, color: theme.accentColor),
                                   const SizedBox(width: 4),
-                                  Text("Bloom School", style: TextStyle(color: theme.accentColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  Text("Bloom School",
+                                      style: TextStyle(
+                                          color: theme.accentColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12)),
                                 ],
                               ).animate().fadeIn().slideX(begin: -0.2),
                             ),
@@ -295,21 +326,29 @@ class _GameScreenState extends State<GameScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      if (state.puzzle.solutionIndexes.isNotEmpty)
+                                      if (state
+                                          .puzzle.solutionIndexes.isNotEmpty)
                                         Container(
-                                          margin: const EdgeInsets.only(bottom: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          margin:
+                                              const EdgeInsets.only(bottom: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
                                           decoration: BoxDecoration(
                                             color: Colors.white24,
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
                                           child: Text(
-                                            state.guidedTeachingMarker 
-                                                ? "Step 1 of ${state.puzzle.solutionIndexes.length + 1}" 
+                                            state.guidedTeachingMarker
+                                                ? "Step 1 of ${state.puzzle.solutionIndexes.length + 1}"
                                                 : "Step ${state.guidedStepIndex + (state.levelNumber == 1 ? 2 : 1)} of ${state.puzzle.solutionIndexes.length + (state.levelNumber == 1 ? 1 : 0)}",
-                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       Text(
@@ -323,8 +362,11 @@ class _GameScreenState extends State<GameScreen> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () => _cubit.cancelGuidedTutorial(),
-                                  child: const Text('Skip Tutorial', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                  onPressed: () =>
+                                      _cubit.cancelGuidedTutorial(),
+                                  child: const Text('Skip Tutorial',
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 12)),
                                 ),
                               ],
                             ),
@@ -347,8 +389,15 @@ class _GameScreenState extends State<GameScreen> {
                     blockMinDistance: config.blockMinDistance,
                     minDistance: config.minDistance,
                     blockKnightMove: config.blockKnightMove,
-                    hasMines: state.activeTrack == PuzzleTrack.ultraHard && state.puzzle.mineIndexes.isNotEmpty,
-                    highlightedRule: state.guidedModeActive ? (state.levelNumber == 1 ? 'rowColumn' : (state.levelNumber == 2 ? 'colorRegion' : 'noTouch')) : null,
+                    hasMines: state.activeTrack == PuzzleTrack.ultraHard &&
+                        state.puzzle.mineIndexes.isNotEmpty,
+                    highlightedRule: state.guidedModeActive
+                        ? (state.levelNumber == 1
+                            ? 'rowColumn'
+                            : (state.levelNumber == 2
+                                ? 'colorRegion'
+                                : 'noTouch'))
+                        : null,
                   ),
                   DifficultyBar(
                     showDifficultyBar: state.showDifficultyBar,
@@ -369,9 +418,12 @@ class _GameScreenState extends State<GameScreen> {
                       hintCount: state.hintCount,
                       bulbCount: state.bulbCount,
                       undoCount: state.undoCount,
+                      autoMarkCount: state.autoMarkCount,
+                      enabled: state.powersEnabled,
                       onHintTap: () => _cubit.useHint(),
                       onBulbTap: () => _cubit.useBulb(),
                       onUndoTap: () => _cubit.undoLast(),
+                      onAutoMarkTap: () => _cubit.useAutoMark(),
                     ),
                   if (AdConstants.showBottomBannerAd && !state.guidedModeActive)
                     BannerAdWidget(adUnitId: AdConstants.bottomBannerUnitId),
@@ -392,7 +444,8 @@ class _GameScreenState extends State<GameScreen> {
                         },
                       ),
                     )
-                  else if (state.guidedPreviewActive && state.guidedPreviewRule != null)
+                  else if (state.guidedPreviewActive &&
+                      state.guidedPreviewRule != null)
                     Positioned.fill(
                       child: GuidedRulePreview(
                         rule: state.guidedPreviewRule!,
@@ -419,12 +472,13 @@ class _GameScreenState extends State<GameScreen> {
                               .getProgress()
                               .adsRemoved,
                         ),
+                        onUseExtraLife: _cubit.useInventoryExtraLife,
                         onGiveUp: () => _cubit.giveUp(),
                         onTryAgain: _restartLevel,
                         onMenu: _goToMenu,
                       ),
                     ),
-                  
+
                   // Feedback Toast
                   if (state.guidedFeedbackText != null)
                     Positioned(
@@ -434,18 +488,30 @@ class _GameScreenState extends State<GameScreen> {
                       child: Center(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 24),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.green.shade600,
                             borderRadius: BorderRadius.circular(24),
-                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, spreadRadius: 2)],
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 8,
+                                  spreadRadius: 2)
+                            ],
                           ),
                           child: Text(
                             state.guidedFeedbackText!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
                           ),
-                        ).animate().scale(curve: Curves.easeOutBack, duration: 400.ms).fadeIn(),
+                        )
+                            .animate()
+                            .scale(curve: Curves.easeOutBack, duration: 400.ms)
+                            .fadeIn(),
                       ),
                     ),
                 ],
@@ -474,15 +540,132 @@ class _GameScreenState extends State<GameScreen> {
       tutorialHighlightIndexes: state.tutorialHighlightIndexes,
       guidedModeActive: state.guidedModeActive,
       guidedInteractableIndex: state.guidedInteractableIndex,
-      onTileSingleTap: (index) => _cubit.onTileSingleTap(index),
-      onTileDoubleTap: (index) => _cubit.onTileDoubleTap(index),
+      onTileSingleTap: (index) {
+        if (!_blockGridInput) _cubit.onTileSingleTap(index);
+      },
+      onTileDoubleTap: (index) {
+        if (!_blockGridInput) _cubit.onTileDoubleTap(index);
+      },
     );
 
     if (state.puzzle.gridSize >= 10) {
-      return RepaintBoundary(child: grid);
+      return _ZoomablePuzzleBoard(
+        key: ValueKey(
+          '${state.mode.name}:${state.levelNumber}:${state.activeTrack.name}',
+        ),
+        onInputBlockedChanged: (blocked) => _blockGridInput = blocked,
+        child: RepaintBoundary(child: grid),
+      );
     }
 
     return grid;
+  }
+}
+
+class _ZoomablePuzzleBoard extends StatefulWidget {
+  const _ZoomablePuzzleBoard({
+    super.key,
+    required this.child,
+    required this.onInputBlockedChanged,
+  });
+
+  final Widget child;
+  final ValueChanged<bool> onInputBlockedChanged;
+
+  @override
+  State<_ZoomablePuzzleBoard> createState() => _ZoomablePuzzleBoardState();
+}
+
+class _ZoomablePuzzleBoardState extends State<_ZoomablePuzzleBoard> {
+  final TransformationController _controller = TransformationController();
+  Matrix4 _interactionStartMatrix = Matrix4.identity();
+  DateTime? _lastPointerDown;
+  Offset? _lastPointerPosition;
+  Timer? _unblockTimer;
+  bool _gestureChanged = false;
+  final Set<int> _activePointers = {};
+
+  @override
+  void dispose() {
+    _unblockTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isTransformed {
+    final identity = Matrix4.identity().storage;
+    final current = _controller.value.storage;
+    for (var index = 0; index < current.length; index++) {
+      if ((current[index] - identity[index]).abs() > 0.001) return true;
+    }
+    return false;
+  }
+
+  void _blockInput([Duration duration = const Duration(milliseconds: 140)]) {
+    _unblockTimer?.cancel();
+    widget.onInputBlockedChanged(true);
+    _unblockTimer = Timer(duration, () {
+      widget.onInputBlockedChanged(false);
+    });
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    final isFirstPointer = _activePointers.isEmpty;
+    _activePointers.add(event.pointer);
+    if (!isFirstPointer) return;
+    final now = DateTime.now();
+    final previous = _lastPointerDown;
+    final previousPosition = _lastPointerPosition;
+    _lastPointerDown = now;
+    _lastPointerPosition = event.localPosition;
+    if (previous != null &&
+        previousPosition != null &&
+        now.difference(previous) < const Duration(milliseconds: 320) &&
+        (event.localPosition - previousPosition).distance < 28 &&
+        _isTransformed) {
+      _blockInput(const Duration(milliseconds: 220));
+      _controller.value = Matrix4.identity();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: ClipRect(
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: _handlePointerDown,
+          onPointerUp: (event) => _activePointers.remove(event.pointer),
+          onPointerCancel: (event) => _activePointers.remove(event.pointer),
+          child: InteractiveViewer(
+            transformationController: _controller,
+            minScale: 1,
+            maxScale: 3.5,
+            panEnabled: true,
+            scaleEnabled: true,
+            boundaryMargin: EdgeInsets.zero,
+            clipBehavior: Clip.hardEdge,
+            onInteractionStart: (details) {
+              _interactionStartMatrix = _controller.value.clone();
+              _gestureChanged = false;
+            },
+            onInteractionUpdate: (details) {
+              if (details.pointerCount < 2) {
+                _controller.value = _interactionStartMatrix.clone();
+                return;
+              }
+              _gestureChanged = true;
+              widget.onInputBlockedChanged(true);
+            },
+            onInteractionEnd: (details) {
+              if (_gestureChanged) _blockInput();
+            },
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
   }
 }
 

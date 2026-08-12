@@ -5,13 +5,13 @@ class PlayerProgress {
   @Id()
   int id = 0;
 
-  /// Next playable level on Normal track (1-50, or 51 when complete)
+  /// Next playable level on Normal track (1-80, or 81 when complete)
   int normalHighest = 1;
 
-  /// Next playable level on Hard track (1-50, or 51 when complete)
+  /// Next playable level on Hard track (1-80, or 81 when complete)
   int hardHighest = 16;
 
-  /// Next playable level on Ultra Hard track (1-50, or 51 when complete)
+  /// Next playable level on Ultra Hard track (1-80, or 81 when complete)
   int ultraHighest = 31;
 
   /// Total hints owned
@@ -25,6 +25,25 @@ class PlayerProgress {
 
   /// Total bulbs owned
   int bulbs = 5;
+
+  /// AutoMark inventory. Versioned migration grants five to existing players.
+  int autoMarks = 5;
+
+  int streakFreezes = 0;
+
+  /// Last applied economy migration. Defaults apply only to new installations.
+  int economyMigrationVersion = 1;
+
+  /// JSON string arrays keep unlock IDs stable and extensible across releases.
+  String unlockedChapterIdsJson = '["blossom_garden"]';
+  String unlockedThemeIdsJson = '["theme_blossom_garden"]';
+  String unlockedBoardSkinIdsJson = '["board_blossom_garden"]';
+  String unlockedObjectIdsJson = '[]';
+  String unlockedMusicTrackIdsJson = '["music_blossom_garden"]';
+
+  /// Bit N represents whether tutorial board N+1's reward was claimed.
+  int tutorialBoardsCompleted = 0;
+  int tutorialRewardClaimsMask = 0;
 
   /// Has the main tutorial been seen?
   bool tutorialSeen = false;
