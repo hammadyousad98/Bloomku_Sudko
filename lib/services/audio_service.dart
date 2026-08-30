@@ -21,13 +21,18 @@ class AudioService {
 
   static double _musicVolume = 0.8;
   static double _sfxVolume = 0.8;
+  static bool _initialized = false;
+
+  static bool get isInitialized => _initialized;
 
   static Future<void> initialize(SettingsRepository settings) async {
+    if (_initialized) return;
     final s = settings.getSettings();
     _musicVolume = s.musicVolume;
     _sfxVolume = s.sfxVolume;
 
     await _musicPlayer.setReleaseMode(ReleaseMode.loop);
+    _initialized = true;
   }
 
   static Future<List<String>> _getTracksForTheme(int themeIndex) async {
@@ -55,6 +60,7 @@ class AudioService {
   }
 
   static Future<void> playMenuMusic(int themeIndex) async {
+    if (!_initialized) return;
     await _menuMusicCompleteSub?.cancel();
     _menuMusicCompleteSub = null;
 
@@ -74,6 +80,7 @@ class AudioService {
   }
 
   static Future<void> _playCurrentMenuTrack() async {
+    if (!_initialized || _currentMenuPlaylist.isEmpty) return;
     if (_musicVolume <= 0) return;
     await _musicPlayer.setVolume(_musicVolume);
 
@@ -84,12 +91,14 @@ class AudioService {
   }
 
   static Future<void> stopMusic() async {
+    if (!_initialized) return;
     await _menuMusicCompleteSub?.cancel();
     _menuMusicCompleteSub = null;
     await _musicPlayer.stop();
   }
 
   static Future<void> _playSfx(String path) async {
+    if (!_initialized) return;
     if (_sfxVolume <= 0) return;
     // Advance to next player in the pool
     _sfxPoolIndex = (_sfxPoolIndex + 1) % _sfxPoolSize;
@@ -122,6 +131,7 @@ class AudioService {
 
   static void setMusicVolume(double v) {
     _musicVolume = v;
+    if (!_initialized) return;
     if (v <= 0) {
       _musicPlayer.stop();
     } else {
@@ -131,12 +141,15 @@ class AudioService {
 
   static void setSfxVolume(double v) {
     _sfxVolume = v;
+    if (!_initialized) return;
     for (final p in _sfxPool) {
       p.setVolume(v);
     }
   }
 
   static Future<void> dispose() async {
+    if (!_initialized) return;
+    _initialized = false;
     await _menuMusicCompleteSub?.cancel();
     await _musicPlayer.dispose();
     for (final p in _sfxPool) {

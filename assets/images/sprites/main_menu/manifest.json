@@ -1,0 +1,202 @@
+{
+  "logo_plaque": {
+    "file": "logo_plaque.png",
+    "width": 780,
+    "height": 270
+  },
+  "logo_lotus": {
+    "file": "logo_lotus.png",
+    "width": 230,
+    "height": 138
+  },
+  "logo_leaf_left": {
+    "file": "logo_leaf_left.png",
+    "width": 190,
+    "height": 122
+  },
+  "logo_leaf_right": {
+    "file": "logo_leaf_right.png",
+    "width": 170,
+    "height": 126
+  },
+  "logo_wordmark": {
+    "file": "logo_wordmark.png",
+    "width": 650,
+    "height": 156
+  },
+  "settings_frame": {
+    "file": "settings_frame.png",
+    "width": 132,
+    "height": 132
+  },
+  "gear": {
+    "file": "gear.png",
+    "width": 82,
+    "height": 82
+  },
+  "hud_pill": {
+    "file": "hud_pill.png",
+    "width": 230,
+    "height": 108
+  },
+  "heart": {
+    "file": "heart.png",
+    "width": 76,
+    "height": 76
+  },
+  "auto_mark": {
+    "file": "auto_mark.png",
+    "width": 76,
+    "height": 76
+  },
+  "petal": {
+    "file": "petal.png",
+    "width": 76,
+    "height": 76
+  },
+  "streak_medal": {
+    "file": "streak_medal.png",
+    "width": 158,
+    "height": 176
+  },
+  "flame": {
+    "file": "flame.png",
+    "width": 116,
+    "height": 196
+  },
+  "mascot": {
+    "file": "mascot.png",
+    "width": 212,
+    "height": 241
+  },
+  "butterfly_blue": {
+    "file": "butterfly_blue.png",
+    "width": 111,
+    "height": 90
+  },
+  "butterfly_orange": {
+    "file": "butterfly_orange.png",
+    "width": 107,
+    "height": 90
+  },
+  "falling_petals": {
+    "file": "falling_petals.png",
+    "width": 102,
+    "height": 96
+  },
+  "green_button": {
+    "file": "green_button.png",
+    "width": 700,
+    "height": 184
+  },
+  "continue_word": {
+    "file": "continue_word.png",
+    "width": 530,
+    "height": 116
+  },
+  "level_ribbon": {
+    "file": "level_ribbon.png",
+    "width": 644,
+    "height": 112
+  },
+  "level_text": {
+    "file": "level_text.png",
+    "width": 150,
+    "height": 52
+  },
+  "blossom_text": {
+    "file": "blossom_text.png",
+    "width": 220,
+    "height": 52
+  },
+  "progress_panel": {
+    "file": "progress_panel.png",
+    "width": 900,
+    "height": 230
+  },
+  "progress_frame": {
+    "file": "progress_frame.png",
+    "width": 920,
+    "height": 250
+  },
+  "count_badge": {
+    "file": "count_badge.png",
+    "width": 110,
+    "height": 62
+  },
+  "flower_pink": {
+    "file": "flower_pink.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_purple": {
+    "file": "flower_purple.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_blue": {
+    "file": "flower_blue.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_white": {
+    "file": "flower_white.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_yellow": {
+    "file": "flower_yellow.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_red": {
+    "file": "flower_red.png",
+    "width": 68,
+    "height": 68
+  },
+  "flower_placeholder": {
+    "file": "flower_placeholder.png",
+    "width": 68,
+    "height": 68
+  },
+  "book": {
+    "file": "book.png",
+    "width": 180,
+    "height": 140
+  },
+  "calendar": {
+    "file": "calendar.png",
+    "width": 145,
+    "height": 138
+  },
+  "daily_flower": {
+    "file": "daily_flower.png",
+    "width": 72,
+    "height": 72
+  },
+  "chest": {
+    "file": "chest.png",
+    "width": 170,
+    "height": 148
+  },
+  "nav_base": {
+    "file": "nav_base.png",
+    "width": 290,
+    "height": 150
+  },
+  "ready_badge": {
+    "file": "ready_badge.png",
+    "width": 100,
+    "height": 62
+  },
+  "corner_flower": {
+    "file": "corner_flower.png",
+    "width": 88,
+    "height": 82
+  },
+  "lotus_decoration": {
+    "file": "lotus_decoration.png",
+    "width": 150,
+    "height": 106
+  }
+}

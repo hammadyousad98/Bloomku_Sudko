@@ -41,4 +41,8 @@ class PuzzleResult {
   int autoMarksUsed = 0;
   int extraLivesUsed = 0;
   int playedAtMs = 0;
+
+  /// Runtime-only context consumed by session goals.
+  @Transient()
+  bool beatPersonalBest = false;
 }

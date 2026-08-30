@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; background: var(--figma-color-bg); color: var(--figma-color-text); }
+    .hero { padding: 18px; border-radius: 18px; color: #fff7dc; background: linear-gradient(145deg, #315c15, #6d3518); box-shadow: 0 8px 28px rgba(0,0,0,.22); }
+    .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; opacity: .72; }
+    h1 { margin: 7px 0 4px; font-size: 25px; }
+    .hero p { margin: 0; font-size: 12px; line-height: 1.45; opacity: .86; }
+    .spec { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+    .spec div { padding: 11px; border: 1px solid var(--figma-color-border); border-radius: 11px; background: var(--figma-color-bg-secondary); }
+    .spec strong { display: block; font-size: 13px; }
+    .spec span { font-size: 10px; color: var(--figma-color-text-secondary); }
+    .assets { padding: 14px; border-radius: 12px; border: 1px solid var(--figma-color-border); background: var(--figma-color-bg-secondary); }
+    .assets strong { display: block; margin-bottom: 7px; font-size: 12px; }
+    .assets p, .note { margin: 0; font-size: 11px; line-height: 1.45; color: var(--figma-color-text-secondary); }
+    .check { color: #72ad2c; font-weight: 800; }
+    .note { margin: 14px 0; }
+    button { width: 100%; padding: 13px 16px; border: 0; border-radius: 12px; font-weight: 800; cursor: pointer; }
+    #generate { color: white; background: #5d9a17; box-shadow: inset 0 2px rgba(255,255,255,.2); }
+    #generate:disabled { opacity: .55; cursor: wait; }
+    #close { margin-top: 8px; color: var(--figma-color-text); background: var(--figma-color-bg-secondary); border: 1px solid var(--figma-color-border); }
+    #status { min-height: 44px; margin-top: 12px; padding: 11px; border-radius: 10px; font-size: 11px; line-height: 1.45; background: var(--figma-color-bg-secondary); }
+    .success { color: #72ad2c; }
+    .error { color: #e95343; }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="eyebrow">ZENDUKO UI SYSTEM · BUILD 2.0</div>
+    <h1>Gameplay Screen Generator</h1>
+    <p>Creates the editable 1080×1920 gameplay screen from the garden background and isolated gameplay sprites.</p>
+  </section>
+
+  <section class="spec">
+    <div><strong>1080 × 1920</strong><span>Portrait production canvas</span></div>
+    <div><strong>Named layers</strong><span>Stable Flutter layout keys</span></div>
+    <div><strong>6×6 sample</strong><span>Dynamic board handoff</span></div>
+    <div><strong>Components</strong><span>Reusable sprite masters</span></div>
+  </section>
+
+  <section class="assets">
+    <strong><span class="check">✓</span> Project assets embedded</strong>
+    <p>main_menu_bg_v1.png<br>assets/images/sprites/gameplay/</p>
+  </section>
+
+  <p class="note">Generation clears only the dedicated “Zenduko Generated UI” page. Other pages and user-owned frames remain untouched.</p>
+
+  <button id="generate">Generate Gameplay Screen</button>
+  <button id="close">Close</button>
+  <div id="status">Ready. The result contains editable text, named layout regions, sprite components, and Flutter handoff notes.</div>
+
+  <script>
+    const BACKGROUND_BASE64 = "__BACKGROUND_BASE64__";
+    const SPRITE_BASE64 = __SPRITES_JSON__;
+    const generate = document.getElementById("generate");
+    const status = document.getElementById("status");
+
+    function decodeBase64(value) {
+      const binary = atob(value);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      return Array.from(bytes);
+    }
+
+    generate.onclick = () => {
+      generate.disabled = true;
+      generate.textContent = "Replacing old screen…";
+      status.className = "";
+      status.textContent = "Replacing the old generated page with editable gameplay layers and reusable components…";
+      parent.postMessage({
+        pluginMessage: {
+          type: "generate-gameplay",
+          backgroundBytes: decodeBase64(BACKGROUND_BASE64),
+          spriteAssets: Object.fromEntries(Object.entries(SPRITE_BASE64).map(([name, asset]) => [name, {
+            bytes: decodeBase64(asset.base64),
+            width: asset.width,
+            height: asset.height,
+          }])),
+        },
+      }, "*");
+    };
+
+    document.getElementById("close").onclick = () => parent.postMessage({ pluginMessage: { type: "close" } }, "*");
+
+    onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      if (!message) return;
+      generate.disabled = false;
+      generate.textContent = "Regenerate Gameplay Screen";
+      if (message.type === "generated") {
+        status.className = "success";
+        status.textContent = `Done. Created the 1080×1920 editable gameplay screen with ${message.layerCount} named layers.`;
+      } else if (message.type === "error") {
+        status.className = "error";
+        status.textContent = `Error: ${message.message}`;
+      }
+    };
+  </script>
+</body>
+</html>

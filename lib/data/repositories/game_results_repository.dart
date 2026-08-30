@@ -1,6 +1,7 @@
 import 'package:objectbox/objectbox.dart';
 
 import '../models/level_result.dart';
+import '../../core/constants/app_constants.dart';
 
 class GameResultsRepository {
   GameResultsRepository(this._levelBox, this._puzzleBox);
@@ -17,6 +18,30 @@ class GameResultsRepository {
   }
 
   List<LevelResult> allLevelResults() => _levelBox.getAll();
+
+  int starsForLevel(int levelNumber, {String track = 'normal'}) =>
+      levelResult(levelNumber, track)?.highestStars ?? 0;
+
+  int totalStarsForChapter(
+    ChapterDefinition chapter, {
+    bool includeAlternativeTracks = true,
+  }) {
+    return _levelBox.getAll().where((result) {
+      return chapter.contains(result.levelNumber) &&
+          (includeAlternativeTracks || result.track == 'normal');
+    }).fold(0, (total, result) => total + result.highestStars);
+  }
+
+  int totalCampaignStars({bool includeAlternativeTracks = true}) =>
+      campaignChapters.fold(
+        0,
+        (total, chapter) =>
+            total +
+            totalStarsForChapter(
+              chapter,
+              includeAlternativeTracks: includeAlternativeTracks,
+            ),
+      );
 
   List<PuzzleResult> puzzleHistory() =>
       _puzzleBox.getAll()..sort((a, b) => b.playedAtMs.compareTo(a.playedAtMs));

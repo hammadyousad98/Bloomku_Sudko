@@ -13,4 +13,6 @@ class DailyRewardState {
 
   /// Whether today's reward has been claimed
   bool claimedToday = false;
+
+  String lastFreezeUsedDate = '';
 }

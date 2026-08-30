@@ -1,58 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zendoku/core/utils/daily_challenge_config.dart';
-import 'package:zendoku/core/utils/puzzle_generator.dart';
 
 void main() {
-  test('maps each weekday to the fixed daily challenge config', () {
-    final expected = <DailyChallengeDay>[
-      const DailyChallengeDay(5, PuzzleTrack.normal, hintReward: 1),
-      const DailyChallengeDay(10, PuzzleTrack.normal, bulbReward: 1),
-      const DailyChallengeDay(
-        18,
-        PuzzleTrack.hard,
-        hintReward: 1,
-        bulbReward: 1,
-      ),
-      const DailyChallengeDay(
-        24,
-        PuzzleTrack.hard,
-        hintReward: 2,
-        bulbReward: 2,
-      ),
-      const DailyChallengeDay(
-        30,
-        PuzzleTrack.hard,
-        hintReward: 2,
-        bulbReward: 2,
-        undoReward: 2,
-      ),
-      const DailyChallengeDay(
-        38,
-        PuzzleTrack.ultraHard,
-        hintReward: 3,
-        bulbReward: 2,
-        undoReward: 2,
-      ),
-      const DailyChallengeDay(
-        50,
-        PuzzleTrack.ultraHard,
-        hintReward: 3,
-        bulbReward: 3,
-        undoReward: 3,
-        extraLifeReward: 2,
-      ),
-    ];
+  test('challenge identity uses the complete local calendar date', () {
+    final mondayOne = dailyChallengeConfigFor(DateTime(2026, 8, 3));
+    final mondayTwo = dailyChallengeConfigFor(DateTime(2026, 8, 10));
 
-    for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++) {
-      final date = DateTime(2026, 7, 13 + weekday - DateTime.monday);
-      final config = dailyChallengeConfigFor(date);
+    expect(mondayOne.seed, 20260803);
+    expect(mondayTwo.seed, 20260810);
+    expect(mondayOne.seed, isNot(mondayTwo.seed));
+  });
 
-      expect(config.level, expected[weekday - 1].level);
-      expect(config.track, expected[weekday - 1].track);
-      expect(config.hintReward, expected[weekday - 1].hintReward);
-      expect(config.bulbReward, expected[weekday - 1].bulbReward);
-      expect(config.undoReward, expected[weekday - 1].undoReward);
-      expect(config.extraLifeReward, expected[weekday - 1].extraLifeReward);
-    }
+  test('the same date always returns the same deterministic challenge', () {
+    final first = dailyChallengeConfigFor(DateTime(2026, 8, 14, 1));
+    final second = dailyChallengeConfigFor(DateTime(2026, 8, 14, 23, 59));
+
+    expect(second.seed, first.seed);
+    expect(second.level, first.level);
+    expect(second.track, first.track);
+    expect(second.autoMarkReward, greaterThan(0));
+  });
+
+  test('consecutive dates always use different seeds', () {
+    final first = dailyChallengeConfigFor(DateTime(2026, 12, 31));
+    final second = dailyChallengeConfigFor(DateTime(2027, 1, 1));
+    expect(first.seed, 20261231);
+    expect(second.seed, 20270101);
+    expect(second.seed, isNot(first.seed));
   });
 }

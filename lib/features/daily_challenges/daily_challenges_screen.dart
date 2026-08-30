@@ -3,13 +3,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/daily_challenge_config.dart';
 import '../../core/utils/puzzle_generator.dart';
 import '../../data/repositories/daily_challenge_repository.dart';
+import '../../data/repositories/daily_history_repository.dart';
+import '../../services/reminder_service.dart';
 import '../game/widgets/rules_panel.dart';
 import 'daily_challenge_cubit.dart';
+import 'daily_share_card.dart';
 
 class DailyChallengesScreen extends StatelessWidget {
   const DailyChallengesScreen({super.key});
@@ -19,6 +23,7 @@ class DailyChallengesScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => DailyChallengeCubit(
         GetIt.I<DailyChallengeRepository>(),
+        GetIt.I<DailyHistoryRepository>(),
       )..loadState(),
       child: const _DailyChallengeView(),
     );
@@ -137,6 +142,10 @@ class _NotPlayedContent extends StatelessWidget {
       child: Column(
         children: [
           _StreakPill(streak: state.currentChallengeStreak),
+          const SizedBox(height: 14),
+          _MonthlyCalendar(days: state.calendarDays),
+          const SizedBox(height: 14),
+          const _ReminderOptInCard(),
           const SizedBox(height: 24),
           Container(
             width: double.infinity,
@@ -249,6 +258,10 @@ class _CompletedContent extends StatelessWidget {
       child: Column(
         children: [
           _StreakPill(streak: state.currentChallengeStreak),
+          const SizedBox(height: 14),
+          _MonthlyCalendar(days: state.calendarDays),
+          const SizedBox(height: 14),
+          const _ReminderOptInCard(),
           const SizedBox(height: 24),
           Container(
             width: double.infinity,
@@ -291,7 +304,8 @@ class _CompletedContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Come back tomorrow for a new puzzle.',
+                  'Best ${_formatMilliseconds(state.result.bestTimeMs)} · '
+                  '${state.result.lowestMistakes} mistakes',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: theme.textSecondary,
@@ -349,7 +363,11 @@ class _CompletedContent extends StatelessWidget {
                     onPressed: () async {
                       await SharePlus.instance.share(
                         ShareParams(
-                          text: "I solved today's Zenduko! 🌸",
+                          text: buildDailyShareText(
+                            date: DateTime.now(),
+                            challenge: state.challenge,
+                            result: state.result,
+                          ),
                           subject: 'Zenduko Daily Challenge',
                         ),
                       );
@@ -372,6 +390,182 @@ class _CompletedContent extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MonthlyCalendar extends StatelessWidget {
+  const _MonthlyCalendar({required this.days});
+
+  final List<DailyCalendarDay> days;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.bloomkuTheme;
+    if (days.isEmpty) return const SizedBox.shrink();
+    final leading = days.first.date.weekday - 1;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.cardColor.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            DateFormat('MMMM yyyy').format(days.first.date),
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final label in ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
+                Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+            ),
+            itemCount: leading + days.length,
+            itemBuilder: (context, index) {
+              if (index < leading) return const SizedBox.shrink();
+              final day = days[index - leading];
+              final (color, icon) = switch (day.status) {
+                DailyCalendarStatus.completed => (Colors.green, '✓'),
+                DailyCalendarStatus.missed => (Colors.red.shade300, '·'),
+                DailyCalendarStatus.today => (theme.accentColor, '${day.date.day}'),
+                DailyCalendarStatus.future =>
+                  (theme.textSecondary.withValues(alpha: 0.25), '${day.date.day}'),
+              };
+              return Tooltip(
+                message: day.bestTimeMs > 0
+                    ? 'Best ${_formatMilliseconds(day.bestTimeMs)}'
+                    : day.status.name,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: day.status == DailyCalendarStatus.today
+                        ? Border.all(color: color, width: 2)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      icon,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '✓ completed   · missed   ◯ today',
+            style: TextStyle(color: theme.textSecondary, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderOptInCard extends StatefulWidget {
+  const _ReminderOptInCard();
+
+  @override
+  State<_ReminderOptInCard> createState() => _ReminderOptInCardState();
+}
+
+class _ReminderOptInCardState extends State<_ReminderOptInCard> {
+  late final ReminderService _reminders = GetIt.I<ReminderService>();
+  bool _busy = false;
+
+  Future<void> _toggle() async {
+    if (_busy) return;
+    if (_reminders.isEnabled) {
+      setState(() => _busy = true);
+      await _reminders.disable();
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Enable a daily reminder?'),
+            content: const Text(
+              'Zendoku will send one respectful reminder at 7:00 PM. '
+              'You can turn it off here at any time.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Not now'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Enable'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+    setState(() => _busy = true);
+    final enabled = await _reminders.enableAfterExplicitPrompt();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (!enabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notification permission was not granted.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.bloomkuTheme;
+    return Material(
+      color: theme.cardColor.withValues(alpha: 0.82),
+      borderRadius: BorderRadius.circular(16),
+      child: ListTile(
+        onTap: _toggle,
+        leading: Icon(Icons.notifications_none_rounded, color: theme.accentColor),
+        title: const Text('Daily reminder'),
+        subtitle: Text(
+          _reminders.isEnabled ? 'Enabled for 7:00 PM' : 'Off by default',
+        ),
+        trailing: _busy
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Switch(value: _reminders.isEnabled, onChanged: (_) => _toggle()),
       ),
     );
   }
@@ -514,6 +708,13 @@ String _formatCountdown(Duration duration) {
   return '$hours:$minutes:$seconds';
 }
 
+String _formatMilliseconds(int milliseconds) {
+  final duration = Duration(milliseconds: milliseconds);
+  final minutes = duration.inMinutes;
+  final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
 String _completionRewardText(DailyChallengeDay day) {
   final rewards = <String>[
     if (day.hintReward > 0)
@@ -525,6 +726,8 @@ String _completionRewardText(DailyChallengeDay day) {
     if (day.extraLifeReward > 0)
       '+${day.extraLifeReward} '
           '${day.extraLifeReward == 1 ? 'extra life' : 'extra lives'}',
+    if (day.autoMarkReward > 0)
+      '+${day.autoMarkReward} AutoMark${day.autoMarkReward == 1 ? '' : 's'}',
   ];
 
   if (rewards.length == 1) return rewards.single;

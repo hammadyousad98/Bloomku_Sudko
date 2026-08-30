@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:get_it/get_it.dart';
 import '../../services/ad_service.dart';
+import '../../services/app_services_bootstrap.dart';
 import '../../data/repositories/progress_repository.dart';
 
 /// Shows a banner ad or an empty SizedBox if ads are removed.
@@ -20,16 +21,27 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  late final AppServicesBootstrap _bootstrap;
 
   @override
   void initState() {
     super.initState();
+    _bootstrap = GetIt.I<AppServicesBootstrap>();
+    _bootstrap.addListener(_onBootstrapChanged);
+    _loadWhenReady();
+  }
+
+  void _onBootstrapChanged() => _loadWhenReady();
+
+  void _loadWhenReady() {
+    if (!_bootstrap.ads.isReady || _bannerAd != null) return;
     final adsRemoved = GetIt.I<ProgressRepository>().getProgress().adsRemoved;
     if (!adsRemoved) {
       final preloadedBanner = AdService.getPreloadedBanner(widget.adUnitId);
       if (preloadedBanner != null) {
         _bannerAd = preloadedBanner;
         _isLoaded = true;
+        if (mounted) setState(() {});
         return;
       }
 
@@ -75,6 +87,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
+    _bootstrap.removeListener(_onBootstrapChanged);
     _bannerAd?.dispose();
     super.dispose();
   }

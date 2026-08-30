@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../di/service_locator.dart';
-import '../constants/app_constants.dart';
+import '../utils/puzzle_generator.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/reward_repository.dart';
 import '../../features/daily_challenges/daily_challenges_screen.dart';
@@ -12,6 +12,8 @@ import '../../features/main_menu/main_menu_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/tutorial/tutorial_screen.dart';
+import '../../features/chapter_map/chapter_map_screen.dart';
+import '../config/feature_flags.dart';
 
 class AppRouter {
   AppRouter._();
@@ -33,6 +35,10 @@ class AppRouter {
       GoRoute(
         path: '/menu',
         builder: (context, state) => const MainMenuScreen(),
+      ),
+      GoRoute(
+        path: '/chapters',
+        builder: (context, state) => const ChapterMapScreen(),
       ),
       GoRoute(
         path: '/game',
@@ -73,6 +79,22 @@ class AppRouter {
   static String? _redirect(BuildContext context, GoRouterState state) {
     final location = state.uri.path;
 
+    if (location == '/chapters' &&
+        !FeatureFlags.current.chaptersAndWinExperience) {
+      return '/menu';
+    }
+    if (location == '/challenges' &&
+        !FeatureFlags.current.dailyCalendarFreezesNotificationsAndSharing) {
+      return '/menu';
+    }
+
+    if (location != '/splash' &&
+        location != '/tutorial' &&
+        FeatureFlags.current.nonBlockingStartupAndTutorial &&
+        !sl<ProgressRepository>().getProgress().tutorialSeen) {
+      return '/tutorial';
+    }
+
     if (location == '/game') {
       final extra = state.extra;
       final isDailyChallenge = extra is Map<String, Object?>
@@ -89,7 +111,7 @@ class AppRouter {
           : state.uri.queryParameters['track'] ?? 'normal';
 
       final isCurrentPlayable = level != null &&
-          level <= maxLevelCount &&
+          level <= FeatureFlags.current.campaignMaxLevel &&
           sl<ProgressRepository>().isLevelUnlocked(
             level,
             _trackFromName(trackName),

@@ -8,9 +8,20 @@ import '../../../data/repositories/daily_challenge_repository.dart';
 import '../../../data/repositories/progress_repository.dart';
 import '../../../data/repositories/settings_repository.dart';
 import '../../../data/repositories/game_session_repository.dart';
+import '../../../data/repositories/game_results_repository.dart';
+import '../../../data/repositories/collection_repository.dart';
+import '../../../data/repositories/daily_history_repository.dart';
+import '../../../data/repositories/session_goal_repository.dart';
+import '../../../data/models/level_result.dart';
+import '../../../data/models/session_goal_state.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/analytics/onboarding_analytics.dart';
+import '../../../core/config/feature_flags.dart';
 import 'game_state.dart';
 import 'game_scoring.dart';
 import 'auto_mark_logic.dart';
+import '../domain/star_calculation.dart';
+import '../../daily_challenges/daily_share_card.dart';
 
 import '../../../services/ad_service.dart';
 import '../../../services/audio_service.dart';
@@ -28,6 +39,11 @@ class GameCubit extends Cubit<GameState> {
   final SettingsRepository _settingsRepo;
   final DailyChallengeRepository _dailyChallengeRepo;
   final GameSessionRepository _sessionRepo;
+  final OnboardingAnalytics _onboardingAnalytics;
+  final GameResultsRepository _gameResultsRepo;
+  final CollectionRepository _collectionRepo;
+  final DailyHistoryRepository _dailyHistoryRepo;
+  final SessionGoalRepository _sessionGoalRepo;
 
   final Map<PuzzleTrack, _InProgressSnapshot> _trackSnapshots = {};
 
@@ -41,6 +57,11 @@ class GameCubit extends Cubit<GameState> {
     this._settingsRepo,
     this._dailyChallengeRepo,
     this._sessionRepo,
+    this._onboardingAnalytics,
+    this._gameResultsRepo,
+    this._collectionRepo,
+    this._dailyHistoryRepo,
+    this._sessionGoalRepo,
   ) : super(
           const GameState(
             phase: GamePhase.loading,
@@ -130,7 +151,7 @@ class GameCubit extends Cubit<GameState> {
     emit(state.copyWith(
       guidedInteractableIndex: _findMarkerDemoTileIndex(),
       guidedTeachingMarker: true,
-      guidedInstructionText: "Tap once to mark this cell with an ×",
+      guidedInstructionText: "Long-press this cell to mark it with an ×",
     ));
   }
 
@@ -179,13 +200,12 @@ class GameCubit extends Cubit<GameState> {
     String instr;
     if (state.levelNumber == 1) {
       instr =
-          "Double-tap the highlighted tile to place a flower — only one per row & column";
+          "Tap the highlighted tile to place a flower — only one per row & column";
     } else if (state.levelNumber == 2) {
-      instr =
-          "Double-tap the highlighted tile — only one flower per color region";
+      instr = "Tap the highlighted tile — only one flower per color region";
     } else {
       instr =
-          "Double-tap the highlighted tile — flowers can't touch, not even diagonally";
+          "Tap the highlighted tile — flowers can't touch, not even diagonally";
     }
 
     emit(state.copyWith(
@@ -265,7 +285,8 @@ class GameCubit extends Cubit<GameState> {
     var config = PuzzleGenerator.configForLevel(
       levelNumber,
       track,
-      includeLockedFlower: includeLockedFlower,
+      includeLockedFlower: includeLockedFlower &&
+          FeatureFlags.current.lockedFlowerAutoMarkIconsAndZoom,
     );
     var resolvedDailyDay = dailyDay;
     String? fallbackStatusMessage;
@@ -297,6 +318,10 @@ class GameCubit extends Cubit<GameState> {
         autoMarkHistory: const [],
         actionHistory: const [],
         autoMarksUsed: 0,
+        hintsUsed: 0,
+        undosUsed: 0,
+        solveRowsUsed: 0,
+        clearWinSummary: true,
         isAdPresenting: false,
         pendingRuleTutorials: const [],
         showRuleTutorial: false,
@@ -403,6 +428,9 @@ class GameCubit extends Cubit<GameState> {
     List<List<int>> currentAutoMarkHistory = [];
     List<String> currentActionHistory = [];
     int currentAutoMarksUsed = 0;
+    int currentHintsUsed = 0;
+    int currentUndosUsed = 0;
+    int currentSolveRowsUsed = 0;
     int currentMistakeCount = 0;
 
     if (!forceRestart && !isDailyChallenge) {
@@ -425,6 +453,9 @@ class GameCubit extends Cubit<GameState> {
                 currentMoveHistory.map((index) => 'object:$index').toList();
           }
           currentAutoMarksUsed = snapshot.autoMarksUsed;
+          currentHintsUsed = snapshot.hintsUsed;
+          currentUndosUsed = snapshot.undosUsed;
+          currentSolveRowsUsed = snapshot.solveRowsUsed;
           currentLives = snapshot.livesRemaining;
           currentElapsed = snapshot.elapsed;
           currentMistakeCount = snapshot.mistakeCount;
@@ -436,34 +467,8 @@ class GameCubit extends Cubit<GameState> {
     if (!isDailyChallenge) {
       unawaited(_sessionRepo.setLastTrack(effectiveTrack));
     }
-    final bool showRuleTutorial = !_progressRepo.hasSeenRuleTutorial(
-      effectiveLevel,
-    );
-    if (showRuleTutorial) {
-      _progressRepo.markRuleTutorialSeen(effectiveLevel);
-    }
-
-    // Build list of new rule tutorials to show
-    final List<String> pending = [];
-    if (config.blockFullDiagonal && !_progressRepo.hasSeenDiagonalRule()) {
-      _progressRepo.markDiagonalRuleSeen();
-      pending.add('diagonal');
-    }
-    if (config.blockMinDistance && !_progressRepo.hasSeenMinDistanceRule()) {
-      _progressRepo.markMinDistanceRuleSeen();
-      pending.add('minDistance');
-    }
-    if (config.blockKnightMove && !_progressRepo.hasSeenKnightMoveRule()) {
-      _progressRepo.markKnightMoveRuleSeen();
-      pending.add('knightMove');
-    }
-    if (puzzle.mineIndexes.isNotEmpty && !_progressRepo.hasSeenMineRule()) {
-      _progressRepo.markMineRuleSeen();
-      pending.add('mine');
-    }
-
-    // The old rule-popup tutorial system for row/column, color-region, and no-touch
-    // on levels 1-3 of Normal track has been superseded by the guided walkthrough.
+    // Detailed rule explanations now live in the expandable in-game Rules panel.
+    const pending = <String>[];
 
     emit(
       state.copyWith(
@@ -487,6 +492,9 @@ class GameCubit extends Cubit<GameState> {
         bulbCount: progress.bulbs,
         autoMarkCount: progress.autoMarks,
         autoMarksUsed: currentAutoMarksUsed,
+        hintsUsed: currentHintsUsed,
+        undosUsed: currentUndosUsed,
+        solveRowsUsed: currentSolveRowsUsed,
         extraLiveCount: progress.extraLives,
         mode: mode,
         activeDailyDay: resolvedDailyDay,
@@ -499,7 +507,7 @@ class GameCubit extends Cubit<GameState> {
         autoMarkHistory: currentAutoMarkHistory,
         actionHistory: currentActionHistory,
         statusMessage: fallbackStatusMessage,
-        showRuleTutorial: showRuleTutorial || pending.isNotEmpty,
+        showRuleTutorial: false,
         pendingRuleTutorials: pending,
         errorTileIndex: null,
         hintTileIndex: null,
@@ -620,7 +628,7 @@ class GameCubit extends Cubit<GameState> {
     }
   }
 
-  void onTileSingleTap(int index) {
+  void onTileLongPress(int index) {
     if (state.phase != GamePhase.playing) return;
 
     if (state.guidedModeActive &&
@@ -632,7 +640,7 @@ class GameCubit extends Cubit<GameState> {
     final currentStates = List<TileState>.from(state.tileStates);
     final tile = currentStates[index];
 
-    if (tile == TileState.lockedObject || tile == TileState.revealedMine) {
+    if (isImmutableTile(tile)) {
       return;
     }
 
@@ -662,7 +670,7 @@ class GameCubit extends Cubit<GameState> {
     }
   }
 
-  void onTileDoubleTap(int index) {
+  void onTileTap(int index) {
     if (state.phase != GamePhase.playing) return;
 
     if (state.guidedModeActive &&
@@ -674,7 +682,7 @@ class GameCubit extends Cubit<GameState> {
     final currentStates = List<TileState>.from(state.tileStates);
     final tile = currentStates[index];
 
-    if (tile == TileState.lockedObject || tile == TileState.revealedMine) {
+    if (isImmutableTile(tile)) {
       return;
     }
 
@@ -978,41 +986,154 @@ class GameCubit extends Cubit<GameState> {
     }
 
     final finalScore = _scoreFor(completed: true);
+    final starCalculation = calculateLevelStars(
+      mistakes: state.mistakeCount,
+      hintsUsed: state.hintsUsed,
+      solveRowsUsed: state.solveRowsUsed,
+      autoMarksUsed: state.autoMarksUsed,
+      elapsed: state.elapsed,
+      parTime: parTimeForPuzzle(
+        gridSize: state.puzzle.gridSize,
+        track: state.activeTrack,
+      ),
+    );
+    late WinSummary winSummary;
+    late PuzzleResult puzzleResult;
 
     if (state.mode == GameMode.dailyChallenge) {
-      if (!_dailyChallengeRepo.hasCompletedToday()) {
-        final dailyDay = state.activeDailyDay!;
-        if (dailyDay.hintReward > 0) {
-          _progressRepo.addHints(dailyDay.hintReward);
-        }
-        if (dailyDay.bulbReward > 0) {
-          _progressRepo.addBulbs(dailyDay.bulbReward);
-        }
-        if (dailyDay.undoReward > 0) {
-          _progressRepo.addUndos(dailyDay.undoReward);
-        }
-        if (dailyDay.extraLifeReward > 0) {
-          _progressRepo.addExtraLives(dailyDay.extraLifeReward);
-        }
+      final now = DateTime.now();
+      final dailyDay = state.activeDailyDay!;
+      final previous = _dailyHistoryRepo.resultForDate(now);
+      final isNewBest = previous == null ||
+          previous.bestTimeMs == 0 ||
+          state.elapsed.inMilliseconds < previous.bestTimeMs;
+      var usedFreeze = false;
 
-        final streakReward = _dailyChallengeRepo.markCompletedToday();
+      if (!_dailyChallengeRepo.hasCompletedToday(now)) {
+        _grantDailyReward(
+          hints: dailyDay.hintReward,
+          bulbs: dailyDay.bulbReward,
+          undos: dailyDay.undoReward,
+          extraLives: dailyDay.extraLifeReward,
+          autoMarks: dailyDay.autoMarkReward,
+        );
+        final completion = _dailyChallengeRepo.markCompletedToday();
+        usedFreeze = completion?.usedStreakFreeze ?? false;
+        final streakReward = completion?.streakReward;
         if (streakReward != null) {
-          if (streakReward.hints > 0) {
-            _progressRepo.addHints(streakReward.hints);
-          }
-          if (streakReward.bulbs > 0) {
-            _progressRepo.addBulbs(streakReward.bulbs);
-          }
-          if (streakReward.undos > 0) {
-            _progressRepo.addUndos(streakReward.undos);
-          }
-          if (streakReward.extraLives > 0) {
-            _progressRepo.addExtraLives(streakReward.extraLives);
-          }
+          _grantDailyReward(
+            hints: streakReward.hints,
+            bulbs: streakReward.bulbs,
+            undos: streakReward.undos,
+            extraLives: streakReward.extraLives,
+            autoMarks: streakReward.autoMarks,
+            streakFreezes: streakReward.streakFreezes,
+          );
         }
       }
+
+      final streak = _dailyChallengeRepo.getState().currentChallengeStreak;
+      final shareGrid = buildSpoilerFreeDailyGrid(
+        stars: starCalculation.stars,
+        mistakes: state.mistakeCount,
+        powersUsed:
+            state.hintsUsed + state.solveRowsUsed + state.autoMarksUsed,
+      );
+      final history = _dailyHistoryRepo.recordCompletion(
+        date: now,
+        elapsedMs: state.elapsed.inMilliseconds,
+        score: finalScore,
+        mistakes: state.mistakeCount,
+        streak: streak,
+        shareGridData: shareGrid,
+      );
+      puzzleResult = _buildPuzzleResult(
+        finalScore: finalScore,
+        stars: starCalculation.stars,
+        mode: 'dailyChallenge',
+        puzzleKey: DailyHistoryRepository.dateKey(now),
+        beatPersonalBest: isNewBest,
+      );
+      _gameResultsRepo.recordPuzzle(puzzleResult);
+      winSummary = WinSummary(
+        starCalculation: starCalculation,
+        personalBest: Duration(milliseconds: history.bestTimeMs),
+        isNewBest: isNewBest,
+        chapterName: 'Daily Challenge',
+        collectibleCount: 0,
+        collectibleTarget: 0,
+        nextCollectible: null,
+        nextUnlock: null,
+        levelsToUnlock: 0,
+        chapterCompletedNow: false,
+        sessionGoalMessage:
+            usedFreeze ? '❄️ Streak Freeze saved your daily streak!' : null,
+      );
     } else {
+      final chapter = chapterForLevel(state.levelNumber)!;
+      final progressBefore = _progressRepo.getProgress();
+      final chapterCompletedNow = state.activeTrack == PuzzleTrack.normal &&
+          state.levelNumber == chapter.endLevel &&
+          progressBefore.normalHighest <= state.levelNumber;
+      final previousResult = _gameResultsRepo.levelResult(
+        state.levelNumber,
+        state.activeTrack.name,
+      );
+      final isNewBest = previousResult == null ||
+          previousResult.bestTimeMs == 0 ||
+          state.elapsed.inMilliseconds < previousResult.bestTimeMs;
+
       _progressRepo.completeLevel(state.levelNumber, state.activeTrack);
+      final collectionBefore = _collectionRepo.progressFor(chapter.id);
+      final wasCollectionComplete = collectionBefore.chapterCompleted;
+      final collection = _collectionRepo.collectForPuzzle(
+        chapter: chapter,
+        levelNumber: state.levelNumber,
+        track: state.activeTrack,
+      );
+      var earnedFreeze = false;
+      if (!wasCollectionComplete &&
+          collection.chapterCompleted &&
+          _collectionRepo.claimChapterReward(chapter.id)) {
+        _progressRepo.addStreakFreezes(1);
+        earnedFreeze = true;
+      }
+      puzzleResult = _buildPuzzleResult(
+        finalScore: finalScore,
+        stars: starCalculation.stars,
+        mode: 'progression',
+        puzzleKey: '${state.activeTrack.name}:${state.levelNumber}',
+        beatPersonalBest: isNewBest,
+      );
+      _gameResultsRepo.recordPuzzle(puzzleResult);
+      final best = _gameResultsRepo.levelResult(
+        state.levelNumber,
+        state.activeTrack.name,
+      );
+      final nextCollectible =
+          collection.collectedCount < chapter.collectibles.length
+              ? chapter.collectibles[collection.collectedCount].name
+              : null;
+      winSummary = WinSummary(
+        starCalculation: starCalculation,
+        personalBest: Duration(milliseconds: best?.bestTimeMs ?? 0),
+        isNewBest: isNewBest,
+        chapterName: chapter.name,
+        collectibleCount: collection.collectedCount,
+        collectibleTarget: collection.targetCount,
+        nextCollectible: nextCollectible,
+        nextUnlock: chapter.completionReward.label,
+        levelsToUnlock: (chapter.endLevel - state.levelNumber).clamp(0, 80),
+        chapterCompletedNow: chapterCompletedNow,
+        sessionGoalMessage:
+            earnedFreeze ? '❄️ Restoration milestone: +1 Streak Freeze' : null,
+      );
+      _onboardingAnalytics.recordOnce('first_real_win', metadata: {
+        'level': state.levelNumber,
+        'track': state.activeTrack.name,
+        'elapsedMs': state.elapsed.inMilliseconds,
+        'mistakes': state.mistakeCount,
+      });
 
       final progress = _progressRepo.getProgress();
       if (!state.guidedModeActive &&
@@ -1023,7 +1144,94 @@ class GameCubit extends Cubit<GameState> {
       }
     }
 
-    emit(state.copyWith(phase: GamePhase.levelComplete, score: finalScore));
+    if (!FeatureFlags.current.sessionGoalsAndEconomyBalancing) {
+      emit(state.copyWith(
+        phase: GamePhase.levelComplete,
+        score: finalScore,
+        winSummary: winSummary,
+      ));
+      return;
+    }
+
+    final goalUpdate = _sessionGoalRepo.applyPuzzleResult(puzzleResult);
+    if (goalUpdate.newlyCompleted) {
+      _grantSessionGoalReward(goalUpdate.goal);
+    }
+    if (goalUpdate.changed) {
+      final definition = _sessionGoalRepo.definitionFor(goalUpdate.goal);
+      final progressText = goalUpdate.newlyCompleted
+          ? 'Session goal complete: ${definition.title}'
+          : '${definition.title}: ${goalUpdate.goal.progress}/${goalUpdate.goal.target}';
+      final existing = winSummary.sessionGoalMessage;
+      winSummary = winSummary.copyWith(
+        sessionGoalMessage:
+            existing == null ? progressText : '$existing\n$progressText',
+      );
+    }
+
+    emit(state.copyWith(
+      phase: GamePhase.levelComplete,
+      score: finalScore,
+      winSummary: winSummary,
+    ));
+  }
+
+  PuzzleResult _buildPuzzleResult({
+    required int finalScore,
+    required int stars,
+    required String mode,
+    required String puzzleKey,
+    required bool beatPersonalBest,
+  }) =>
+      PuzzleResult()
+        ..puzzleKey = puzzleKey
+        ..mode = mode
+        ..levelNumber = state.levelNumber
+        ..track = state.activeTrack.name
+        ..completed = true
+        ..elapsedMs = state.elapsed.inMilliseconds
+        ..score = finalScore
+        ..stars = stars
+        ..mistakes = state.mistakeCount
+        ..hintsUsed = state.hintsUsed
+        ..undosUsed = state.undosUsed
+        ..solveRowsUsed = state.solveRowsUsed
+        ..autoMarksUsed = state.autoMarksUsed
+        ..beatPersonalBest = beatPersonalBest;
+
+  void _grantDailyReward({
+    int hints = 0,
+    int bulbs = 0,
+    int undos = 0,
+    int extraLives = 0,
+    int autoMarks = 0,
+    int streakFreezes = 0,
+  }) {
+    if (hints > 0) _progressRepo.addHints(hints);
+    if (bulbs > 0) _progressRepo.addBulbs(bulbs);
+    if (undos > 0) _progressRepo.addUndos(undos);
+    if (extraLives > 0) _progressRepo.addExtraLives(extraLives);
+    if (autoMarks > 0) _progressRepo.addAutoMarks(autoMarks);
+    if (streakFreezes > 0) _progressRepo.addStreakFreezes(streakFreezes);
+  }
+
+  void _grantSessionGoalReward(SessionGoalState goal) {
+    if (!_sessionGoalRepo.claimReward()) return;
+    switch (goal.rewardType) {
+      case 'collection_progress':
+        final level = _progressRepo
+            .getProgress()
+            .normalHighest
+            .clamp(1, maxLevelCount);
+        final chapter = chapterForLevel(level)!;
+        _collectionRepo.collect(chapter.id, goal.goalId);
+      case 'cosmetic_currency':
+        _progressRepo.addCosmeticCurrency(goal.rewardAmount);
+      case 'streak_freeze':
+        _progressRepo.addStreakFreezes(goal.rewardAmount);
+      case 'auto_mark':
+        _progressRepo.addAutoMarks(goal.rewardAmount);
+    }
   }
 
   void useHint() {
@@ -1040,7 +1248,11 @@ class GameCubit extends Cubit<GameState> {
       _progressRepo.useHint();
 
       emit(
-        state.copyWith(hintCount: state.hintCount - 1, hintTileIndex: target),
+        state.copyWith(
+          hintCount: state.hintCount - 1,
+          hintTileIndex: target,
+          hintsUsed: state.hintsUsed + 1,
+        ),
       );
 
       Future.delayed(const Duration(milliseconds: 1500), () {
@@ -1070,6 +1282,7 @@ class GameCubit extends Cubit<GameState> {
       emit(
         state.copyWith(
           bulbCount: state.bulbCount - 1,
+          solveRowsUsed: state.solveRowsUsed + 1,
           tileStates: currentStates,
           placedCount: newPlacedCount,
           score: _scoreFor(placedCount: newPlacedCount),
@@ -1083,13 +1296,18 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void useAutoMark() {
-    if (!_canUsePowers) return;
+    if (!FeatureFlags.current.lockedFlowerAutoMarkIconsAndZoom ||
+        !_canUsePowers) {
+      return;
+    }
 
-    final targets = findAutoMarkTargets(
+    final plan = planAutoMark(
       state.tileStates,
       state.puzzle.gridSize,
       state.puzzle.mineIndexes.toSet(),
+      inventory: state.autoMarkCount,
     );
+    final targets = plan.targetIndexes;
     if (targets.isEmpty) {
       emit(state.copyWith(
         rewardMessage: 'No new touching cells can be marked yet.',
@@ -1097,7 +1315,7 @@ class GameCubit extends Cubit<GameState> {
       return;
     }
 
-    if (state.autoMarkCount <= 0) {
+    if (!plan.canApply) {
       _showRewardedPower(RewardType.autoMark);
       return;
     }
@@ -1180,6 +1398,7 @@ class GameCubit extends Cubit<GameState> {
     if (!_progressRepo.useUndo()) return;
     emit(state.copyWith(
       undoCount: state.undoCount - 1,
+      undosUsed: state.undosUsed + 1,
       tileStates: currentStates,
       moveHistory: moveHistory,
       autoMarkHistory: batches,
@@ -1201,6 +1420,12 @@ class GameCubit extends Cubit<GameState> {
 
   void _showRewardedPower(RewardType type) {
     if (!_canUsePowers) return;
+    if (!AdService.isInitialized) {
+      emit(state.copyWith(
+        rewardMessage: 'Rewarded ads are unavailable right now.',
+      ));
+      return;
+    }
     emit(state.copyWith(isAdPresenting: true));
     try {
       final started = AdService.showRewarded(
@@ -1212,7 +1437,10 @@ class GameCubit extends Cubit<GameState> {
         },
       );
       if (!started && !isClosed) {
-        emit(state.copyWith(isAdPresenting: false));
+        emit(state.copyWith(
+          isAdPresenting: false,
+          rewardMessage: 'Rewarded ads are unavailable right now.',
+        ));
       }
     } catch (_) {
       if (!isClosed) emit(state.copyWith(isAdPresenting: false));
@@ -1241,6 +1469,9 @@ class GameCubit extends Cubit<GameState> {
             .toList(),
         actionHistory: List.from(state.actionHistory),
         autoMarksUsed: state.autoMarksUsed,
+        hintsUsed: state.hintsUsed,
+        undosUsed: state.undosUsed,
+        solveRowsUsed: state.solveRowsUsed,
         livesRemaining: state.livesRemaining,
         elapsed: state.elapsed,
         mistakeCount: state.mistakeCount,
@@ -1370,6 +1601,9 @@ class GameCubit extends Cubit<GameState> {
           state.autoMarkHistory.map((batch) => List<int>.from(batch)).toList(),
       actionHistory: List.from(state.actionHistory),
       autoMarksUsed: state.autoMarksUsed,
+      hintsUsed: state.hintsUsed,
+      undosUsed: state.undosUsed,
+      solveRowsUsed: state.solveRowsUsed,
       livesRemaining: state.livesRemaining,
       elapsed: state.elapsed,
       mistakeCount: state.mistakeCount,
@@ -1387,6 +1621,9 @@ class _InProgressSnapshot {
   final List<List<int>> autoMarkHistory;
   final List<String> actionHistory;
   final int autoMarksUsed;
+  final int hintsUsed;
+  final int undosUsed;
+  final int solveRowsUsed;
   final int livesRemaining;
   final Duration elapsed;
   final int mistakeCount;
@@ -1399,6 +1636,9 @@ class _InProgressSnapshot {
     required this.autoMarkHistory,
     required this.actionHistory,
     required this.autoMarksUsed,
+    required this.hintsUsed,
+    required this.undosUsed,
+    required this.solveRowsUsed,
     required this.livesRemaining,
     required this.elapsed,
     required this.mistakeCount,
@@ -1413,6 +1653,9 @@ class _InProgressSnapshot {
         autoMarkHistory: session.autoMarkHistory,
         actionHistory: session.actionHistory,
         autoMarksUsed: session.autoMarksUsed,
+        hintsUsed: session.hintsUsed,
+        undosUsed: session.undosUsed,
+        solveRowsUsed: session.solveRowsUsed,
         livesRemaining: session.livesRemaining,
         elapsed: Duration(seconds: session.elapsedSeconds),
         mistakeCount: session.mistakeCount,
@@ -1426,6 +1669,9 @@ class _InProgressSnapshot {
         autoMarkHistory: autoMarkHistory,
         actionHistory: actionHistory,
         autoMarksUsed: autoMarksUsed,
+        hintsUsed: hintsUsed,
+        undosUsed: undosUsed,
+        solveRowsUsed: solveRowsUsed,
         livesRemaining: livesRemaining,
         elapsedSeconds: elapsed.inSeconds,
         mistakeCount: mistakeCount,

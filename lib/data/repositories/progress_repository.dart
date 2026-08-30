@@ -53,10 +53,15 @@ class ProgressRepository {
 
     if (track == PuzzleTrack.normal) {
       if (levelNumber >= progress.normalHighest) {
+        final completedChapter = chapterForLevel(levelNumber);
         progress.normalHighest = (levelNumber + 1).clamp(1, maxLevelCount + 1);
         final nextChapter = chapterForLevel(progress.normalHighest);
         if (nextChapter != null) {
-          _unlockChapterOn(progress, nextChapter);
+          _unlockChapterOnly(progress, nextChapter);
+        }
+        if (completedChapter != null &&
+            levelNumber == completedChapter.endLevel) {
+          _grantCompletionRewardOn(progress, completedChapter);
         }
       }
     } else if (track == PuzzleTrack.hard) {
@@ -133,6 +138,12 @@ class ProgressRepository {
     saveProgress(progress);
   }
 
+  void addCosmeticCurrency(int count) {
+    final progress = getProgress();
+    progress.cosmeticCurrency += count;
+    saveProgress(progress);
+  }
+
   /// Consumes one of each item. Returns false if not enough inventory.
   bool useHint() {
     final progress = getProgress();
@@ -203,19 +214,47 @@ class ProgressRepository {
 
   void unlockChapter(CampaignChapter chapter) {
     final progress = getProgress();
-    _unlockChapterOn(progress, chapter);
+    _unlockChapterOnly(progress, chapter);
     saveProgress(progress);
   }
 
-  void _unlockChapterOn(PlayerProgress progress, CampaignChapter chapter) {
+  void grantChapterCompletionReward(ChapterDefinition chapter) {
+    final progress = getProgress();
+    _grantCompletionRewardOn(progress, chapter);
+    saveProgress(progress);
+  }
+
+  bool isThemeUnlocked(String themeId) => unlockedThemeIds().contains(themeId);
+
+  void _unlockChapterOnly(
+    PlayerProgress progress,
+    ChapterDefinition chapter,
+  ) {
     progress.unlockedChapterIdsJson =
         _addId(progress.unlockedChapterIdsJson, chapter.id);
-    progress.unlockedThemeIdsJson =
-        _addId(progress.unlockedThemeIdsJson, chapter.themeId);
-    progress.unlockedBoardSkinIdsJson =
-        _addId(progress.unlockedBoardSkinIdsJson, chapter.boardSkinId);
-    progress.unlockedMusicTrackIdsJson =
-        _addId(progress.unlockedMusicTrackIdsJson, chapter.musicTrackId);
+  }
+
+  void _grantCompletionRewardOn(
+    PlayerProgress progress,
+    ChapterDefinition chapter,
+  ) {
+    final reward = chapter.completionReward;
+    if (reward.themeId != null) {
+      progress.unlockedThemeIdsJson =
+          _addId(progress.unlockedThemeIdsJson, reward.themeId!);
+    }
+    if (reward.boardSkinId != null) {
+      progress.unlockedBoardSkinIdsJson =
+          _addId(progress.unlockedBoardSkinIdsJson, reward.boardSkinId!);
+    }
+    if (reward.objectId != null) {
+      progress.unlockedObjectIdsJson =
+          _addId(progress.unlockedObjectIdsJson, reward.objectId!);
+    }
+    if (reward.musicTrackId != null) {
+      progress.unlockedMusicTrackIdsJson =
+          _addId(progress.unlockedMusicTrackIdsJson, reward.musicTrackId!);
+    }
   }
 
   void unlockObject(String objectId) {
@@ -277,6 +316,8 @@ class ProgressRepository {
   void resetTutorialSeen() {
     final progress = getProgress();
     progress.tutorialSeen = false;
+    progress.guidedTutorialSeen = false;
+    progress.tutorialBoardsCompleted = 0;
     saveProgress(progress);
   }
 

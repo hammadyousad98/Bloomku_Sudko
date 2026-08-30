@@ -31,6 +31,9 @@ class PlayerProgress {
 
   int streakFreezes = 0;
 
+  /// Soft currency used by session goals for future cosmetic unlocks.
+  int cosmeticCurrency = 0;
+
   /// Last applied economy migration. Defaults apply only to new installations.
   int economyMigrationVersion = 1;
 

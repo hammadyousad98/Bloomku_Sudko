@@ -8,12 +8,17 @@ import 'package:zendoku/data/models/daily_challenge_history.dart';
 import 'package:zendoku/data/models/level_result.dart';
 import 'package:zendoku/data/models/player_progress.dart';
 import 'package:zendoku/data/models/session_goal_state.dart';
+import 'package:zendoku/data/models/daily_challenge_state.dart';
+import 'package:zendoku/data/models/daily_reward_state.dart';
 import 'package:zendoku/data/objectbox/objectbox.g.dart';
 import 'package:zendoku/data/repositories/collection_repository.dart';
 import 'package:zendoku/data/repositories/daily_history_repository.dart';
 import 'package:zendoku/data/repositories/game_results_repository.dart';
 import 'package:zendoku/data/repositories/progress_repository.dart';
 import 'package:zendoku/data/repositories/session_goal_repository.dart';
+import 'package:zendoku/data/repositories/daily_challenge_repository.dart';
+import 'package:zendoku/data/repositories/reward_repository.dart';
+import 'package:zendoku/features/main_menu/main_menu_cubit.dart';
 
 void main() {
   late Directory directory;
@@ -68,6 +73,28 @@ void main() {
     expect(repository.getProgress().autoMarks, initialAutoMarkGrant);
   });
 
+  test('additive migration preserves existing inventory and progression', () {
+    final box = store.box<PlayerProgress>();
+    box.put(PlayerProgress()
+      ..economyMigrationVersion = 0
+      ..autoMarks = 3
+      ..hints = 11
+      ..extraLives = 4
+      ..undos = 7
+      ..normalHighest = 52
+      ..hardHighest = 18
+      ..ultraHighest = 9);
+
+    final migrated = ProgressRepository(box).getProgress();
+    expect(migrated.autoMarks, 3 + initialAutoMarkGrant);
+    expect(migrated.hints, 11);
+    expect(migrated.extraLives, 4);
+    expect(migrated.undos, 7);
+    expect(migrated.normalHighest, 52);
+    expect(migrated.hardHighest, 18);
+    expect(migrated.ultraHighest, 9);
+  });
+
   test('new progress has initial unlocks and supports tutorial claims', () {
     final repository = ProgressRepository(store.box<PlayerProgress>());
     final progress = repository.getProgress();
@@ -79,9 +106,20 @@ void main() {
     expect(repository.claimTutorialReward(1), isFalse);
     expect(repository.isTutorialRewardClaimed(1), isTrue);
 
+    repository.markTutorialSeen();
+    repository.markGuidedTutorialSeen();
+    repository.resetTutorialSeen();
+    expect(repository.getProgress().tutorialSeen, isFalse);
+    expect(repository.getProgress().guidedTutorialSeen, isFalse);
+    expect(repository.getProgress().tutorialBoardsCompleted, 0);
+    expect(repository.isTutorialRewardClaimed(1), isTrue);
+
     repository.completeLevel(15, PuzzleTrack.normal);
     expect(repository.unlockedChapterIds(),
         containsAll({'blossom_garden', 'ocean_cove'}));
+    expect(repository.unlockedThemeIds(), contains('theme_ocean_cove'));
+    expect(repository.unlockedBoardSkinIds(), contains('board_ocean_cove'));
+    expect(repository.unlockedMusicTrackIds(), contains('music_ocean_cove'));
     repository.completeLevel(80, PuzzleTrack.normal);
     expect(repository.getProgress().normalHighest, maxLevelCount + 1);
     expect(repository.isLevelUnlocked(81, PuzzleTrack.normal), isFalse);
@@ -171,5 +209,125 @@ void main() {
     expect(collections.progressFor('blossom_garden').chapterCompleted, isTrue);
     expect(collections.claimChapterReward('blossom_garden'), isTrue);
     expect(collections.claimChapterReward('blossom_garden'), isFalse);
+  });
+
+  test('session goal progresses once per qualifying puzzle identity', () {
+    final goals = SessionGoalRepository(store.box<SessionGoalState>());
+    goals.setGoal(SessionGoalState()
+      ..goalId = 'session:test:complete_three'
+      ..goalType = 'complete_three'
+      ..target = 3
+      ..expiresAtMs = DateTime(2100).millisecondsSinceEpoch);
+
+    PuzzleResult result(int level) => PuzzleResult()
+      ..puzzleKey = 'normal:$level'
+      ..mode = 'progression'
+      ..track = 'normal'
+      ..levelNumber = level
+      ..completed = true;
+
+    expect(goals.applyPuzzleResult(result(4)).changed, isTrue);
+    expect(goals.applyPuzzleResult(result(4)).changed, isFalse);
+    expect(goals.current!.progress, 1);
+    goals.applyPuzzleResult(result(5));
+    final finalUpdate = goals.applyPuzzleResult(result(6));
+    expect(finalUpdate.newlyCompleted, isTrue);
+    expect(goals.current!.progress, 3);
+  });
+
+  test('streak freeze covers exactly one missed day and is consumed once', () {
+    final progress = ProgressRepository(store.box<PlayerProgress>());
+    progress.getProgress();
+    progress.addStreakFreezes(1);
+    final challenges = DailyChallengeRepository(
+      store.box<DailyChallengeState>(),
+      DailyHistoryRepository(store.box<DailyChallengeHistory>()),
+      progress,
+    );
+    final state = challenges.getState()
+      ..lastCompletedDate = '2026-08-12'
+      ..currentChallengeStreak = 4;
+    store.box<DailyChallengeState>().put(state);
+
+    final completion =
+        challenges.markCompletedToday(date: DateTime(2026, 8, 14))!;
+    expect(completion.usedStreakFreeze, isTrue);
+    expect(completion.streak, 5);
+    expect(progress.getProgress().streakFreezes, 0);
+    expect(
+      challenges.markCompletedToday(date: DateTime(2026, 8, 14)),
+      isNull,
+    );
+  });
+
+  test('login freeze preserves one missed-day streak without double use', () {
+    final progress = ProgressRepository(store.box<PlayerProgress>());
+    progress.getProgress();
+    progress.addStreakFreezes(1);
+    final rewards = RewardRepository(store.box<DailyRewardState>(), progress);
+    final state = rewards.getState()
+      ..lastClaimDate = '2026-08-12'
+      ..currentStreakDay = 3
+      ..claimedToday = true;
+    store.box<DailyRewardState>().put(state);
+
+    rewards.checkAndUpdateStreak(now: DateTime(2026, 8, 14));
+    expect(rewards.getState().currentStreakDay, 3);
+    expect(rewards.takeFreezeFeedback(), isTrue);
+    expect(progress.getProgress().streakFreezes, 0);
+    rewards.checkAndUpdateStreak(now: DateTime(2026, 8, 14));
+    expect(rewards.takeFreezeFeedback(), isFalse);
+    expect(rewards.getState().currentStreakDay, 3);
+  });
+
+  test('AutoMark inventory persists, consumes, and accepts ad replenishment', () {
+    final repository = ProgressRepository(store.box<PlayerProgress>());
+    final initial = repository.getProgress().autoMarks;
+    expect(repository.useAutoMark(), isTrue);
+    expect(repository.getProgress().autoMarks, initial - 1);
+
+    // Rewarded-ad completion uses this same repository operation.
+    repository.addAutoMarks(1);
+    expect(repository.getProgress().autoMarks, initial);
+
+    final reopened = ProgressRepository(store.box<PlayerProgress>());
+    expect(reopened.getProgress().autoMarks, initial);
+  });
+
+  test('reward-ready badge refreshes after returning to the menu', () {
+    final progress = ProgressRepository(store.box<PlayerProgress>());
+    final history = DailyHistoryRepository(store.box<DailyChallengeHistory>());
+    final rewards = RewardRepository(store.box<DailyRewardState>(), progress);
+    final challenges = DailyChallengeRepository(
+      store.box<DailyChallengeState>(),
+      history,
+      progress,
+    );
+    final cubit = MainMenuCubit(
+      progress,
+      rewards,
+      CollectionRepository(store.box<CollectionProgress>()),
+      GameResultsRepository(
+        store.box<LevelResult>(),
+        store.box<PuzzleResult>(),
+      ),
+      challenges,
+      SessionGoalRepository(store.box<SessionGoalState>()),
+    );
+    expect(cubit.state.dailyReady, isTrue);
+
+    final now = DateTime.now();
+    history.recordCompletion(
+      date: now,
+      elapsedMs: 50000,
+      score: 900,
+      mistakes: 0,
+      streak: 1,
+      shareGridData: 'result',
+    );
+    rewards.claimTodayReward(now: now);
+    cubit.loadData();
+    expect(cubit.state.dailyReady, isFalse);
+    cubit.close();
   });
 }

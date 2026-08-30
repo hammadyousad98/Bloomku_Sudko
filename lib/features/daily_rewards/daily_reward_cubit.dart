@@ -79,6 +79,10 @@ class DailyRewardCubit extends Cubit<DailyRewardCubitState> {
     if (reward.extraLives > 0) _progressRepo.addExtraLives(reward.extraLives);
     if (reward.undos > 0) _progressRepo.addUndos(reward.undos);
     if (reward.bulbs > 0) _progressRepo.addBulbs(reward.bulbs);
+    if (reward.autoMarks > 0) _progressRepo.addAutoMarks(reward.autoMarks);
+    if (reward.streakFreezes > 0) {
+      _progressRepo.addStreakFreezes(reward.streakFreezes);
+    }
 
     final updatedState = _rewardRepo.getState();
     emit(DailyRewardClaimed(reward: reward, rewardState: updatedState));

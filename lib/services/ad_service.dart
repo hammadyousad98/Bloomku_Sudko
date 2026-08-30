@@ -23,18 +23,31 @@ class AdService {
   static DateTime? _appOpenLoadTime;
   static bool _isShowingAd = false;
   static bool _adsRemoved = false;
+  static bool _initialized = false;
+  static Future<void>? _initializing;
   static bool isInGame = false;
 
   static bool get isPresentingFullScreenAd => _isShowingAd;
+  static bool get isInitialized => _initialized;
 
-  /// Call in main() before runApp()
-  static Future<void> initialize({bool adsRemoved = false}) async {
+  static Future<void> initialize({bool adsRemoved = false}) {
+    if (_initialized) return Future.value();
+    return _initializing ??= _initialize(adsRemoved: adsRemoved);
+  }
+
+  static Future<void> _initialize({required bool adsRemoved}) async {
     _adsRemoved = adsRemoved;
-    await MobileAds.instance.initialize();
-    _preloadInterstitial();
-    _preloadAppOpenAd();
-    if (!adsRemoved) {
-      _preloadRewarded();
+    try {
+      await MobileAds.instance.initialize();
+      _initialized = true;
+      _preloadInterstitial();
+      _preloadAppOpenAd();
+      if (!adsRemoved) {
+        _preloadRewarded();
+      }
+    } catch (_) {
+      _initializing = null;
+      rethrow;
     }
   }
 
@@ -46,6 +59,7 @@ class AdService {
   }
 
   static void _preloadAppOpenAd() {
+    if (!_initialized) return;
     AppOpenAd.load(
       adUnitId: AdConstants.appOpenAdUnitId,
       request: const AdRequest(),
@@ -62,7 +76,7 @@ class AdService {
   }
 
   static void showAppOpenAdIfAvailable({bool adsRemoved = false}) {
-    if (adsRemoved || _isShowingAd || isInGame) return;
+    if (!_initialized || adsRemoved || _isShowingAd || isInGame) return;
 
     if (_appOpenAd == null) {
       _preloadAppOpenAd();
@@ -101,6 +115,7 @@ class AdService {
 
   /// Preloads the interstitial ad so it's ready when needed.
   static void _preloadInterstitial() {
+    if (!_initialized) return;
     InterstitialAd.load(
       adUnitId: AdConstants.interstitialUnitId,
       request: const AdRequest(),
@@ -134,14 +149,21 @@ class AdService {
 
   /// Shows interstitial if ready and ads not removed. Preloads next one after.
   static void showInterstitial({bool adsRemoved = false}) {
-    if (adsRemoved || !_interstitialReady || _interstitialAd == null) return;
+    if (!_initialized ||
+        adsRemoved ||
+        !_interstitialReady ||
+        _interstitialAd == null) {
+      return;
+    }
     _interstitialReady = false;
     _interstitialAd!.show();
     _interstitialAd = null;
   }
 
   static void _preloadRewarded() {
-    if (_adsRemoved || _rewardedLoading || _rewardedReady) return;
+    if (!_initialized || _adsRemoved || _rewardedLoading || _rewardedReady) {
+      return;
+    }
 
     _rewardedLoading = true;
     RewardedAd.load(
@@ -193,7 +215,7 @@ class AdService {
     VoidCallback? onClosed,
   }) {
     _adsRemoved = adsRemoved;
-    if (adsRemoved) {
+    if (!_initialized || adsRemoved) {
       _rewardedAd?.dispose();
       _rewardedAd = null;
       _rewardedReady = false;
@@ -271,7 +293,7 @@ class AdService {
   /// Starts loading both game-banner placements before GameScreen mounts.
   static void preloadGameBanners({bool adsRemoved = false}) {
     _adsRemoved = adsRemoved;
-    if (adsRemoved) {
+    if (!_initialized || adsRemoved) {
       _topBannerAd?.dispose();
       _bottomBannerAd?.dispose();
       _topBannerAd = null;
@@ -284,6 +306,7 @@ class AdService {
   }
 
   static void _preloadBanner({required bool isTop}) {
+    if (!_initialized) return;
     final cachedAd = isTop ? _topBannerAd : _bottomBannerAd;
     final isLoading = isTop ? _topBannerLoading : _bottomBannerLoading;
     if (_adsRemoved || cachedAd != null || isLoading) return;
@@ -331,7 +354,7 @@ class AdService {
 
   /// Transfers ownership of a loaded preloaded banner to its widget.
   static BannerAd? getPreloadedBanner(String adUnitId) {
-    if (_adsRemoved) return null;
+    if (!_initialized || _adsRemoved) return null;
 
     if (_topBannerAd?.adUnitId == adUnitId) {
       final ad = _topBannerAd;

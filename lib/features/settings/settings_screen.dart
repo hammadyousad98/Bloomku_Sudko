@@ -11,6 +11,8 @@ import '../../core/theme/theme_model.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../services/iap_service.dart';
+import '../../services/app_services_bootstrap.dart';
+import '../../core/constants/app_constants.dart';
 import 'settings_cubit.dart';
 
 // ---------------------------------------------------------------------------
@@ -39,6 +41,14 @@ class _SettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bootstrap = GetIt.I<AppServicesBootstrap>();
+    return ListenableBuilder(
+      listenable: bootstrap,
+      builder: (context, _) => _buildContent(context, bootstrap.purchases),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, AppServiceState purchaseState) {
     final theme = context.bloomkuTheme;
 
     return Scaffold(
@@ -66,7 +76,7 @@ class _SettingsView extends StatelessWidget {
                       _ThemeSection(selectedIndex: state.selectedThemeIndex),
                       const SizedBox(height: 24),
                       _SectionHeader(label: '🛒  Purchases'),
-                      const _PurchasesSection(),
+                      _PurchasesSection(purchaseState: purchaseState),
                       const SizedBox(height: 24),
                       _SectionHeader(label: 'ℹ️  Info'),
                       const _InfoSection(),
@@ -380,13 +390,18 @@ class _ThemeSection extends StatelessWidget {
         itemBuilder: (context, i) {
           final t = BloomkuThemes.all[i];
           final isSelected = selectedIndex == i;
+          final isLocked = !GetIt.I<ProgressRepository>()
+              .isThemeUnlocked(campaignChapters[i].themeId);
           return _ThemeCard(
             themeData: t,
             isSelected: isSelected,
-            onTap: () {
-              settingsCubit.selectTheme(i);
-              themeCubit.selectTheme(i);
-            },
+            isLocked: isLocked,
+            onTap: isLocked
+                ? null
+                : () {
+                    settingsCubit.selectTheme(i);
+                    themeCubit.selectTheme(i);
+                  },
           )
               .animate(delay: (i * 50).ms)
               .fadeIn(duration: 250.ms)
@@ -400,11 +415,13 @@ class _ThemeSection extends StatelessWidget {
 class _ThemeCard extends StatelessWidget {
   final AppThemeData themeData;
   final bool isSelected;
-  final VoidCallback onTap;
+  final bool isLocked;
+  final VoidCallback? onTap;
 
   const _ThemeCard({
     required this.themeData,
     required this.isSelected,
+    required this.isLocked,
     required this.onTap,
   });
 
@@ -479,6 +496,18 @@ class _ThemeCard extends StatelessWidget {
                   child: const Icon(Icons.check, size: 12, color: Colors.white),
                 ),
               ),
+            if (isLocked)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.38),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.lock_rounded, color: Colors.white),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -491,7 +520,9 @@ class _ThemeCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _PurchasesSection extends StatefulWidget {
-  const _PurchasesSection();
+  const _PurchasesSection({required this.purchaseState});
+
+  final AppServiceState purchaseState;
 
   @override
   State<_PurchasesSection> createState() => _PurchasesSectionState();
@@ -508,8 +539,11 @@ class _PurchasesSectionState extends State<_PurchasesSection> {
     final hintsProduct = IapService.products[IapService.hintPackId];
     final undosProduct = IapService.products[IapService.undoPackId];
 
-    final hintsPrice = hintsProduct?.price ?? '...\$';
-    final undosPrice = undosProduct?.price ?? '...\$';
+    final storeReady = widget.purchaseState.isReady;
+    final storeLabel =
+        widget.purchaseState.isLoading ? 'Loading...' : 'Unavailable';
+    final hintsPrice = hintsProduct?.price ?? storeLabel;
+    final undosPrice = undosProduct?.price ?? storeLabel;
     final removeAdsPrice = removeAdsProduct?.price;
 
     return _SettingsCard(
@@ -527,8 +561,10 @@ class _PurchasesSectionState extends State<_PurchasesSection> {
             _TapRow(
               icon: Icons.block_rounded,
               label: 'Remove Ads',
-              trailing: removeAdsPrice,
-              onTap: () => IapService.purchase(IapService.removeAdsId),
+              trailing: removeAdsPrice ?? storeLabel,
+              onTap: storeReady
+                  ? () => IapService.purchase(IapService.removeAdsId)
+                  : null,
               theme: theme,
             ),
           _Divider(),
@@ -537,7 +573,9 @@ class _PurchasesSectionState extends State<_PurchasesSection> {
             icon: Icons.lightbulb_rounded,
             label: 'Buy 10 Hints',
             trailing: hintsPrice,
-            onTap: () => IapService.purchase(IapService.hintPackId),
+            onTap: storeReady
+                ? () => IapService.purchase(IapService.hintPackId)
+                : null,
             theme: theme,
           ),
           _Divider(),
@@ -546,7 +584,9 @@ class _PurchasesSectionState extends State<_PurchasesSection> {
             icon: Icons.undo_rounded,
             label: 'Buy 10 Undos',
             trailing: undosPrice,
-            onTap: () => IapService.purchase(IapService.undoPackId),
+            onTap: storeReady
+                ? () => IapService.purchase(IapService.undoPackId)
+                : null,
             theme: theme,
           ),
           _Divider(),
@@ -555,7 +595,7 @@ class _PurchasesSectionState extends State<_PurchasesSection> {
             icon: Icons.restore_rounded,
             label: 'Restore Purchases',
             trailing: null,
-            onTap: () => IapService.restorePurchases(),
+            onTap: storeReady ? () => IapService.restorePurchases() : null,
             theme: theme,
             isSubtle: true,
           ),
@@ -569,7 +609,7 @@ class _TapRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? trailing;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final dynamic theme;
   final bool isSubtle;
 
@@ -584,46 +624,49 @@ class _TapRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSubtle ? theme.textSecondary : theme.accentColor,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: isSubtle ? theme.textSecondary : theme.textPrimary,
+    return Opacity(
+      opacity: onTap == null ? 0.55 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSubtle ? theme.textSecondary : theme.accentColor,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isSubtle ? theme.textSecondary : theme.textPrimary,
+                  ),
                 ),
               ),
-            ),
-            if (trailing != null) ...[
-              Text(
-                trailing!,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: theme.accentColor,
+              if (trailing != null) ...[
+                Text(
+                  trailing!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: theme.accentColor,
+                  ),
                 ),
+                const SizedBox(width: 4),
+              ],
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.textSecondary.withValues(alpha: 0.5),
               ),
-              const SizedBox(width: 4),
             ],
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: theme.textSecondary.withValues(alpha: 0.5),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -837,9 +880,9 @@ class _HowToPlaySheet extends StatelessWidget {
                   ),
                   _RuleItem(
                     emoji: '💡',
-                    title: 'Tap and double-tap',
+                    title: 'Tap and long-press',
                     description:
-                        'Tap once to toggle an × marker. Double-tap to place or remove your object. Wrong placements cost a life.',
+                        'Tap to place or remove your object. Long-press to toggle an × marker. Wrong placements cost a life.',
                     theme: theme,
                   ),
                 ],

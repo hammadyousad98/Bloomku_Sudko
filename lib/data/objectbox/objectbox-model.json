@@ -5,7 +5,7 @@
   "entities": [
     {
       "id": "1:4370168794124197122",
-      "lastPropertyId": "4:4290983376059355038",
+      "lastPropertyId": "5:6384045347328685199",
       "name": "DailyRewardState",
       "properties": [
         {
@@ -28,13 +28,18 @@
           "id": "4:4290983376059355038",
           "name": "claimedToday",
           "type": 1
+        },
+        {
+          "id": "5:6384045347328685199",
+          "name": "lastFreezeUsedDate",
+          "type": 9
         }
       ],
       "relations": []
     },
     {
       "id": "2:3079320991520534107",
-      "lastPropertyId": "30:6580335707341808673",
+      "lastPropertyId": "31:9187919206406223546",
       "name": "PlayerProgress",
       "properties": [
         {
@@ -187,6 +192,11 @@
           "id": "30:6580335707341808673",
           "name": "noTouchRuleSeen",
           "type": 1
+        },
+        {
+          "id": "31:9187919206406223546",
+          "name": "cosmeticCurrency",
+          "type": 6
         }
       ],
       "relations": []
@@ -227,7 +237,7 @@
     },
     {
       "id": "4:1573346150561790280",
-      "lastPropertyId": "5:8779320624591471531",
+      "lastPropertyId": "6:3817535740266022500",
       "name": "DailyChallengeState",
       "properties": [
         {
@@ -255,6 +265,11 @@
           "id": "5:8779320624591471531",
           "name": "totalChallengesCompleted",
           "type": 6
+        },
+        {
+          "id": "6:3817535740266022500",
+          "name": "lastFreezeUsedDate",
+          "type": 9
         }
       ],
       "relations": []

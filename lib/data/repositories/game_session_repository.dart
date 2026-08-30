@@ -14,6 +14,9 @@ class SavedGameSession {
     required this.elapsedSeconds,
     required this.mistakeCount,
     this.autoMarksUsed = 0,
+    this.hintsUsed = 0,
+    this.undosUsed = 0,
+    this.solveRowsUsed = 0,
     this.autoMarkHistory = const [],
     this.actionHistory = const [],
   });
@@ -26,6 +29,9 @@ class SavedGameSession {
   final int elapsedSeconds;
   final int mistakeCount;
   final int autoMarksUsed;
+  final int hintsUsed;
+  final int undosUsed;
+  final int solveRowsUsed;
   final List<List<int>> autoMarkHistory;
   final List<String> actionHistory;
 
@@ -38,6 +44,9 @@ class SavedGameSession {
         'elapsedSeconds': elapsedSeconds,
         'mistakeCount': mistakeCount,
         'autoMarksUsed': autoMarksUsed,
+        'hintsUsed': hintsUsed,
+        'undosUsed': undosUsed,
+        'solveRowsUsed': solveRowsUsed,
         'autoMarkHistory': autoMarkHistory,
         'actionHistory': actionHistory,
       };
@@ -58,6 +67,9 @@ class SavedGameSession {
         elapsedSeconds: value['elapsedSeconds'] as int,
         mistakeCount: value['mistakeCount'] as int? ?? 0,
         autoMarksUsed: value['autoMarksUsed'] as int? ?? 0,
+        hintsUsed: value['hintsUsed'] as int? ?? 0,
+        undosUsed: value['undosUsed'] as int? ?? 0,
+        solveRowsUsed: value['solveRowsUsed'] as int? ?? 0,
         autoMarkHistory:
             (value['autoMarkHistory'] as List<dynamic>? ?? const [])
                 .map((batch) => (batch as List<dynamic>).cast<int>())

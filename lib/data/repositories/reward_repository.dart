@@ -1,6 +1,7 @@
 import 'package:objectbox/objectbox.dart';
 import '../models/daily_reward_state.dart';
 import 'package:intl/intl.dart';
+import 'progress_repository.dart';
 
 class DailyReward {
   final int day;
@@ -8,6 +9,8 @@ class DailyReward {
   final int extraLives;
   final int undos;
   final int bulbs;
+  final int autoMarks;
+  final int streakFreezes;
 
   const DailyReward({
     required this.day,
@@ -15,17 +18,27 @@ class DailyReward {
     this.extraLives = 0,
     this.undos = 0,
     this.bulbs = 0,
+    this.autoMarks = 0,
+    this.streakFreezes = 0,
   });
 }
 
 const List<DailyReward> kDailyRewards = [
-  DailyReward(day: 1, hints: 1),
-  DailyReward(day: 2, extraLives: 1),
-  DailyReward(day: 3, undos: 1),
-  DailyReward(day: 4, bulbs: 1, hints: 1),
-  DailyReward(day: 5, extraLives: 1, hints: 2),
-  DailyReward(day: 6, bulbs: 1, undos: 1, hints: 1),
-  DailyReward(day: 7, hints: 2, bulbs: 1, extraLives: 1, undos: 1),
+  DailyReward(day: 1, hints: 1, autoMarks: 1),
+  DailyReward(day: 2, extraLives: 1, autoMarks: 1),
+  DailyReward(day: 3, undos: 1, autoMarks: 1),
+  DailyReward(day: 4, bulbs: 1, hints: 1, autoMarks: 1),
+  DailyReward(day: 5, extraLives: 1, hints: 2, autoMarks: 1),
+  DailyReward(day: 6, bulbs: 1, undos: 1, hints: 1, autoMarks: 1),
+  DailyReward(
+    day: 7,
+    hints: 2,
+    bulbs: 1,
+    extraLives: 1,
+    undos: 1,
+    autoMarks: 2,
+    streakFreezes: 1,
+  ),
 ];
 
 DailyReward rewardForStreakDay(int streakDay) {
@@ -35,8 +48,16 @@ DailyReward rewardForStreakDay(int streakDay) {
 
 /// Repository for handling daily rewards logic.
 class RewardRepository {
-  RewardRepository(this._box);
+  RewardRepository(this._box, this._progress);
   final Box<DailyRewardState> _box;
+  final ProgressRepository _progress;
+  bool _usedFreezeOnLastCheck = false;
+
+  bool takeFreezeFeedback() {
+    final value = _usedFreezeOnLastCheck;
+    _usedFreezeOnLastCheck = false;
+    return value;
+  }
 
   /// Returns the single DailyRewardState record, creating it if absent.
   DailyRewardState getState() {
@@ -51,13 +72,13 @@ class RewardRepository {
 
   /// Call on app launch to check if streak should reset.
   /// If last claim was 2+ days ago, reset streak to 0.
-  void checkAndUpdateStreak() {
+  void checkAndUpdateStreak({DateTime? now}) {
     final state = getState();
     if (state.lastClaimDate.isEmpty) return;
 
     try {
       final lastClaim = DateFormat('yyyy-MM-dd').parse(state.lastClaimDate);
-      final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final todayStr = DateFormat('yyyy-MM-dd').format(now ?? DateTime.now());
       final today = DateFormat('yyyy-MM-dd').parse(todayStr);
 
       final difference = today.difference(lastClaim).inDays;
@@ -66,8 +87,14 @@ class RewardRepository {
       } else if (difference == 1) {
         state.claimedToday = false;
       } else {
-        // Missed a day
-        state.currentStreakDay = 0;
+        if (difference == 2 &&
+            state.lastFreezeUsedDate != todayStr &&
+            _progress.useStreakFreeze()) {
+          state.lastFreezeUsedDate = todayStr;
+          _usedFreezeOnLastCheck = true;
+        } else {
+          state.currentStreakDay = 0;
+        }
         state.claimedToday = false;
       }
       _box.put(state);
@@ -80,20 +107,23 @@ class RewardRepository {
   }
 
   /// Returns true if today's reward is available to claim.
-  bool canClaimToday() {
+  bool canClaimToday({DateTime? now}) {
     final state = getState();
-    return !state.claimedToday;
+    if (state.lastClaimDate.isEmpty) return true;
+    final today = DateFormat('yyyy-MM-dd').format(now ?? DateTime.now());
+    return state.lastClaimDate != today;
   }
 
   /// Claims today's reward. Returns the DailyReward for today's day.
   /// Advances streak day. Returns null if already claimed today.
-  DailyReward? claimTodayReward() {
-    if (!canClaimToday()) return null;
+  DailyReward? claimTodayReward({DateTime? now}) {
+    if (!canClaimToday(now: now)) return null;
 
     final state = getState();
     state.currentStreakDay += 1;
     state.claimedToday = true;
-    state.lastClaimDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    state.lastClaimDate =
+        DateFormat('yyyy-MM-dd').format(now ?? DateTime.now());
 
     _box.put(state);
 

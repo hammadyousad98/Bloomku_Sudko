@@ -12,6 +12,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback onGiveUp;
   final VoidCallback onTryAgain;
   final VoidCallback onMenu;
+  final bool rewardedAdAvailable;
 
   const GameOverOverlay({
     super.key,
@@ -21,6 +22,7 @@ class GameOverOverlay extends StatefulWidget {
     required this.onGiveUp,
     required this.onTryAgain,
     required this.onMenu,
+    this.rewardedAdAvailable = true,
   });
 
   @override
@@ -112,7 +114,8 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
           const SizedBox(height: 12),
         ],
         ElevatedButton(
-          onPressed: widget.onWatchAdForLife,
+          onPressed:
+              widget.rewardedAdAvailable ? widget.onWatchAdForLife : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.accentColor,
             foregroundColor: Colors.white,
@@ -122,9 +125,9 @@ class _GameOverOverlayState extends State<GameOverOverlay> {
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          child: const Text(
-            "Watch Ad ▶",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          child: Text(
+            widget.rewardedAdAvailable ? 'Watch Ad ▶' : 'Ad Unavailable',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 12),

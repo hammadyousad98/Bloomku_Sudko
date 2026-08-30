@@ -7,6 +7,7 @@ import 'core/di/service_locator.dart';
 import 'core/router/app_router.dart';
 import 'services/audio_service.dart';
 import 'services/ad_service.dart';
+import 'services/app_services_bootstrap.dart';
 import 'data/repositories/progress_repository.dart';
 
 class BloomkuApp extends StatefulWidget {
@@ -25,8 +26,16 @@ class _BloomkuAppState extends State<BloomkuApp> {
     _listener = AppLifecycleListener(
       onPause: () => AudioService.stopMusic(),
       onResume: () {
-        final adsRemoved = sl<ProgressRepository>().getProgress().adsRemoved;
-        AdService.showAppOpenAdIfAvailable(adsRemoved: adsRemoved);
+        final location =
+            AppRouter.router.routeInformationProvider.value.uri.path;
+        final progress = sl<ProgressRepository>().getProgress();
+        final mayShowAppOpenAd = location != '/splash' &&
+            location != '/tutorial' &&
+            progress.tutorialSeen;
+        if (!mayShowAppOpenAd || !sl<AppServicesBootstrap>().ads.isReady) {
+          return;
+        }
+        AdService.showAppOpenAdIfAvailable(adsRemoved: progress.adsRemoved);
       },
     );
   }

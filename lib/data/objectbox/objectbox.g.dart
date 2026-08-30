@@ -29,7 +29,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(1, 4370168794124197122),
     name: 'DailyRewardState',
-    lastPropertyId: const obx_int.IdUid(4, 4290983376059355038),
+    lastPropertyId: const obx_int.IdUid(5, 6384045347328685199),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -56,6 +56,12 @@ final _entities = <obx_int.ModelEntity>[
         type: 1,
         flags: 0,
       ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 6384045347328685199),
+        name: 'lastFreezeUsedDate',
+        type: 9,
+        flags: 0,
+      ),
     ],
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
@@ -63,7 +69,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(2, 3079320991520534107),
     name: 'PlayerProgress',
-    lastPropertyId: const obx_int.IdUid(30, 6580335707341808673),
+    lastPropertyId: const obx_int.IdUid(31, 9187919206406223546),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -246,6 +252,12 @@ final _entities = <obx_int.ModelEntity>[
         type: 1,
         flags: 0,
       ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(31, 9187919206406223546),
+        name: 'cosmeticCurrency',
+        type: 6,
+        flags: 0,
+      ),
     ],
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
@@ -293,7 +305,7 @@ final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
     id: const obx_int.IdUid(4, 1573346150561790280),
     name: 'DailyChallengeState',
-    lastPropertyId: const obx_int.IdUid(5, 8779320624591471531),
+    lastPropertyId: const obx_int.IdUid(6, 3817535740266022500),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
@@ -324,6 +336,12 @@ final _entities = <obx_int.ModelEntity>[
         id: const obx_int.IdUid(5, 8779320624591471531),
         name: 'totalChallengesCompleted',
         type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 3817535740266022500),
+        name: 'lastFreezeUsedDate',
+        type: 9,
         flags: 0,
       ),
     ],
@@ -800,11 +818,15 @@ obx_int.ModelDefinition getObjectBoxModel() {
       },
       objectToFB: (DailyRewardState object, fb.Builder fbb) {
         final lastClaimDateOffset = fbb.writeString(object.lastClaimDate);
-        fbb.startTable(5);
+        final lastFreezeUsedDateOffset = fbb.writeString(
+          object.lastFreezeUsedDate,
+        );
+        fbb.startTable(6);
         fbb.addInt64(0, object.id);
         fbb.addInt64(1, object.currentStreakDay);
         fbb.addOffset(2, lastClaimDateOffset);
         fbb.addBool(3, object.claimedToday);
+        fbb.addOffset(4, lastFreezeUsedDateOffset);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -828,7 +850,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
             rootOffset,
             10,
             false,
-          );
+          )
+          ..lastFreezeUsedDate = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 12, '');
 
         return object;
       },
@@ -857,7 +882,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final unlockedMusicTrackIdsJsonOffset = fbb.writeString(
           object.unlockedMusicTrackIdsJson,
         );
-        fbb.startTable(31);
+        fbb.startTable(32);
         fbb.addInt64(0, object.id);
         fbb.addInt64(1, object.normalHighest);
         fbb.addInt64(2, object.hardHighest);
@@ -888,6 +913,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addBool(27, object.rowColumnRuleSeen);
         fbb.addBool(28, object.colorRegionRuleSeen);
         fbb.addBool(29, object.noTouchRuleSeen);
+        fbb.addInt64(30, object.cosmeticCurrency);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -1040,6 +1066,12 @@ obx_int.ModelDefinition getObjectBoxModel() {
             rootOffset,
             62,
             false,
+          )
+          ..cosmeticCurrency = const fb.Int64Reader().vTableGet(
+            buffer,
+            rootOffset,
+            64,
+            0,
           );
 
         return object;
@@ -1109,12 +1141,16 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final lastCompletedDateOffset = fbb.writeString(
           object.lastCompletedDate,
         );
-        fbb.startTable(6);
+        final lastFreezeUsedDateOffset = fbb.writeString(
+          object.lastFreezeUsedDate,
+        );
+        fbb.startTable(7);
         fbb.addInt64(0, object.id);
         fbb.addOffset(1, lastCompletedDateOffset);
         fbb.addInt64(2, object.currentChallengeStreak);
         fbb.addInt64(3, object.longestChallengeStreak);
         fbb.addInt64(4, object.totalChallengesCompleted);
+        fbb.addOffset(5, lastFreezeUsedDateOffset);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -1144,7 +1180,10 @@ obx_int.ModelDefinition getObjectBoxModel() {
             rootOffset,
             12,
             0,
-          );
+          )
+          ..lastFreezeUsedDate = const fb.StringReader(
+            asciiOptimization: true,
+          ).vTableGet(buffer, rootOffset, 14, '');
 
         return object;
       },
@@ -1629,6 +1668,11 @@ class DailyRewardState_ {
   static final claimedToday = obx.QueryBooleanProperty<DailyRewardState>(
     _entities[0].properties[3],
   );
+
+  /// See [DailyRewardState.lastFreezeUsedDate].
+  static final lastFreezeUsedDate = obx.QueryStringProperty<DailyRewardState>(
+    _entities[0].properties[4],
+  );
 }
 
 /// [PlayerProgress] entity fields to define ObjectBox queries.
@@ -1777,6 +1821,11 @@ class PlayerProgress_ {
   static final noTouchRuleSeen = obx.QueryBooleanProperty<PlayerProgress>(
     _entities[1].properties[29],
   );
+
+  /// See [PlayerProgress.cosmeticCurrency].
+  static final cosmeticCurrency = obx.QueryIntegerProperty<PlayerProgress>(
+    _entities[1].properties[30],
+  );
 }
 
 /// [SettingsModel] entity fields to define ObjectBox queries.
@@ -1830,6 +1879,10 @@ class DailyChallengeState_ {
   /// See [DailyChallengeState.totalChallengesCompleted].
   static final totalChallengesCompleted =
       obx.QueryIntegerProperty<DailyChallengeState>(_entities[3].properties[4]);
+
+  /// See [DailyChallengeState.lastFreezeUsedDate].
+  static final lastFreezeUsedDate =
+      obx.QueryStringProperty<DailyChallengeState>(_entities[3].properties[5]);
 }
 
 /// [CollectionProgress] entity fields to define ObjectBox queries.

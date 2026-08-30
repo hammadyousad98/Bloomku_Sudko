@@ -11,4 +11,7 @@ class DailyChallengeState {
   int currentChallengeStreak = 0;
   int longestChallengeStreak = 0;
   int totalChallengesCompleted = 0;
+
+  /// Prevents repeated consumption if startup/completion logic is retried.
+  String lastFreezeUsedDate = '';
 }

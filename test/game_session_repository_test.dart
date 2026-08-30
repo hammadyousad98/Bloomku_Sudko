@@ -6,13 +6,21 @@ void main() {
   test('saved game session round-trips all resumable state', () {
     const session = SavedGameSession(
       levelNumber: 12,
-      tileStates: [TileState.object, TileState.marker, TileState.empty],
+      tileStates: [
+        TileState.object,
+        TileState.marker,
+        TileState.autoMarker,
+        TileState.empty,
+      ],
       placedCount: 1,
       moveHistory: [0],
       livesRemaining: 2,
       elapsedSeconds: 47,
       mistakeCount: 1,
       autoMarksUsed: 2,
+      hintsUsed: 1,
+      undosUsed: 3,
+      solveRowsUsed: 1,
       autoMarkHistory: [
         [4, 5, 6]
       ],
@@ -29,6 +37,9 @@ void main() {
     expect(restored.elapsedSeconds, 47);
     expect(restored.mistakeCount, 1);
     expect(restored.autoMarksUsed, 2);
+    expect(restored.hintsUsed, 1);
+    expect(restored.undosUsed, 3);
+    expect(restored.solveRowsUsed, 1);
     expect(restored.autoMarkHistory, [
       [4, 5, 6]
     ]);
@@ -51,5 +62,8 @@ void main() {
     expect(restored.autoMarksUsed, 0);
     expect(restored.autoMarkHistory, isEmpty);
     expect(restored.actionHistory, isEmpty);
+    expect(restored.hintsUsed, 0);
+    expect(restored.undosUsed, 0);
+    expect(restored.solveRowsUsed, 0);
   });
 }

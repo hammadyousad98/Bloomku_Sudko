@@ -1,29 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+
 import '../../../core/theme/app_theme.dart';
-import '../../../widgets/common/themed_icon.dart';
 import '../../../core/utils/puzzle_generator.dart' show TileState;
 
-class GridTileWidget extends StatelessWidget {
-  final Color backgroundColor;
-  final int colorRegionIndex;
-  final TileState state;
-  final VoidCallback onTap;
-  final VoidCallback onDoubleTap;
-  final bool hasError;
-  final bool hasHint;
-  final bool isHintRowCol;
-  final bool hasMineExplosion;
-  final bool isGuidedLocked;
-  final bool isGuidedTarget;
+const _gameplaySprites = 'assets/images/sprites/gameplay';
 
+class GridTileWidget extends StatelessWidget {
   const GridTileWidget({
     super.key,
     required this.backgroundColor,
     required this.colorRegionIndex,
     required this.state,
     required this.onTap,
-    required this.onDoubleTap,
+    required this.onLongPress,
     this.hasError = false,
     this.hasHint = false,
     this.isHintRowCol = false,
@@ -32,149 +22,155 @@ class GridTileWidget extends StatelessWidget {
     this.isGuidedTarget = false,
   });
 
+  final Color backgroundColor;
+  final int colorRegionIndex;
+  final TileState state;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  final bool hasError;
+  final bool hasHint;
+  final bool isHintRowCol;
+  final bool hasMineExplosion;
+  final bool isGuidedLocked;
+  final bool isGuidedTarget;
+
   @override
   Widget build(BuildContext context) {
-    Widget child;
     final theme = context.bloomkuTheme;
-    final iconPath =
-        theme.objectIconPaths[colorRegionIndex % theme.objectIconPaths.length];
-
-    switch (state) {
-      case TileState.empty:
-        child = const SizedBox.expand();
-        break;
-      case TileState.marker:
-      case TileState.autoMarker:
-        child = Center(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Icon(
-                Icons.close_rounded,
-                size: constraints.maxWidth * 0.4,
-                color: state == TileState.autoMarker
-                    ? theme.accentColor.withValues(alpha: 0.75)
-                    : theme.textPrimary.withValues(alpha: 0.5),
-              );
-            },
-          ),
-        ).animate().fadeIn(duration: 150.ms);
-        break;
-      case TileState.object:
-        child = Center(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return ThemedIcon(
-                size: constraints.maxWidth * 0.6,
-                iconPath: iconPath,
-              );
-            },
-          ),
-        ).animate().scale(
-            begin: const Offset(0.6, 0.6),
-            end: const Offset(1.0, 1.0),
-            duration: 200.ms,
-            curve: Curves.elasticOut);
-        break;
-      case TileState.lockedObject:
-        child = Stack(
-          children: [
-            Center(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return ThemedIcon(
-                    size: constraints.maxWidth * 0.6,
-                    iconPath: iconPath,
-                  );
-                },
-              ),
-            ),
-            const Positioned(
-              bottom: 2,
-              right: 2,
-              child: Icon(Icons.lock, size: 16, color: Colors.black87),
-            ),
-          ],
-        );
-        break;
-      case TileState.revealedMine:
-        child = Stack(
-          children: [
-            Container(color: Colors.grey.withValues(alpha: 0.5)),
-            const Center(child: Text("💀", style: TextStyle(fontSize: 24))),
-          ],
-        );
-        break;
-    }
-
-    final hintBaseColor = theme.textPrimary;
-    Color bgColor = backgroundColor;
+    final hintColor = theme.textPrimary;
+    var tileColor = Color.lerp(backgroundColor, Colors.white, 0.48)!;
 
     if (hasHint || isGuidedTarget) {
-      bgColor =
-          Color.alphaBlend(hintBaseColor.withValues(alpha: 0.25), bgColor);
+      tileColor = Color.alphaBlend(
+        hintColor.withValues(alpha: 0.25),
+        tileColor,
+      );
     } else if (isHintRowCol) {
-      bgColor =
-          Color.alphaBlend(hintBaseColor.withValues(alpha: 0.15), bgColor);
+      tileColor = Color.alphaBlend(
+        hintColor.withValues(alpha: 0.15),
+        tileColor,
+      );
     }
 
     Widget tile = GestureDetector(
       onTap: onTap,
-      onDoubleTap: onDoubleTap,
+      onDoubleTap: () {},
+      onLongPress: onLongPress,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: (hasError || hasMineExplosion)
               ? Colors.red.withValues(alpha: 0.8)
-              : bgColor,
-          borderRadius: BorderRadius.circular(10),
+              : tileColor,
+          borderRadius: BorderRadius.circular(7),
           border: (hasHint || isGuidedTarget)
-              ? Border.all(color: hintBaseColor, width: 3)
-              : (isHintRowCol
-                  ? Border.all(
-                      color: hintBaseColor.withValues(alpha: 0.4), width: 1.5)
-                  : null),
+              ? Border.all(color: hintColor, width: 3)
+              : Border.all(
+                  color: const Color(0xFF8E662D).withValues(alpha: 0.55),
+                  width: isHintRowCol ? 1.5 : 0.8,
+                ),
           boxShadow: (hasHint || isGuidedTarget)
               ? [
                   BoxShadow(
-                    color: hintBaseColor.withValues(alpha: 0.4),
+                    color: hintColor.withValues(alpha: 0.4),
                     blurRadius: 10,
                     spreadRadius: 1,
                   ),
                 ]
               : null,
         ),
-        child: child,
+        child: _TileContent(state: state),
       ),
     );
 
     if (isGuidedTarget) {
-      tile = tile.animate(onPlay: (c) => c.repeat(reverse: true)).scale(
-          begin: const Offset(1.0, 1.0),
-          end: const Offset(1.06, 1.06),
-          duration: 600.ms);
+      tile = tile
+          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+          .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.06, 1.06),
+            duration: 600.ms,
+          );
     }
-
     if (isGuidedLocked) {
-      tile = IgnorePointer(
-        child: Opacity(
-          opacity: 0.35,
-          child: tile,
-        ),
-      );
+      tile = IgnorePointer(child: Opacity(opacity: 0.35, child: tile));
     }
-
     if (hasMineExplosion) {
       tile = tile
-          .animate(onComplete: (c) => c.reverse())
+          .animate(onComplete: (controller) => controller.reverse())
           .tint(color: Colors.red, duration: 250.ms)
           .then(delay: 500.ms);
     } else if (hasError) {
       tile = tile
-          .animate(onComplete: (c) => c.reverse())
+          .animate(onComplete: (controller) => controller.reverse())
           .tint(color: Colors.red, duration: 150.ms)
           .then(delay: 300.ms);
     }
-
     return tile;
   }
+}
+
+class _TileContent extends StatelessWidget {
+  const _TileContent({required this.state});
+
+  final TileState state;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (state) {
+      case TileState.empty:
+        return const SizedBox.expand();
+      case TileState.marker:
+      case TileState.autoMarker:
+        return LayoutBuilder(
+          builder: (context, constraints) => Center(
+            child: Icon(
+              Icons.close_rounded,
+              size: constraints.maxWidth * 0.43,
+              color: const Color(0xFF58721F),
+            ),
+          ),
+        ).animate().fadeIn(duration: 150.ms);
+      case TileState.object:
+        return _flower().animate().scale(
+              begin: const Offset(0.6, 0.6),
+              end: const Offset(1, 1),
+              duration: 200.ms,
+              curve: Curves.elasticOut,
+            );
+      case TileState.lockedObject:
+        return Stack(
+          children: [
+            _flower(),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              width: 25,
+              height: 25,
+              child: Image.asset(
+                '$_gameplaySprites/lock_badge.png',
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+          ],
+        );
+      case TileState.revealedMine:
+        return const Center(
+          child: Icon(Icons.warning_rounded, color: Color(0xFF4A2614)),
+        );
+    }
+  }
+
+  Widget _flower() => LayoutBuilder(
+        builder: (context, constraints) => Center(
+          child: Image.asset(
+            '$_gameplaySprites/flower_piece.png',
+            width: constraints.maxWidth * 0.78,
+            height: constraints.maxWidth * 0.78,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      );
 }

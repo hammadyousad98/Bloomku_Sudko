@@ -1,5 +1,34 @@
 import '../../../core/utils/puzzle_generator.dart';
 
+class AutoMarkPlan {
+  const AutoMarkPlan({
+    required this.targetIndexes,
+    required this.canApply,
+    required this.consumesInventory,
+  });
+
+  final List<int> targetIndexes;
+  final bool canApply;
+  final bool consumesInventory;
+}
+
+AutoMarkPlan planAutoMark(
+  List<TileState> states,
+  int gridSize,
+  Set<int> mineIndexes, {
+  required int inventory,
+}) {
+  final targets = findAutoMarkTargets(states, gridSize, mineIndexes);
+  return AutoMarkPlan(
+    targetIndexes: targets,
+    canApply: targets.isNotEmpty && inventory > 0,
+    consumesInventory: targets.isNotEmpty && inventory > 0,
+  );
+}
+
+bool isImmutableTile(TileState state) =>
+    state == TileState.lockedObject || state == TileState.revealedMine;
+
 List<int> findAutoMarkTargets(
   List<TileState> states,
   int gridSize,

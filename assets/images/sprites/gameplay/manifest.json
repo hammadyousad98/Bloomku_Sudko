@@ -1,0 +1,142 @@
+{
+  "back_button": {
+    "file": "back_button.png",
+    "width": 86,
+    "height": 101
+  },
+  "pause_button": {
+    "file": "pause_button.png",
+    "width": 86,
+    "height": 101
+  },
+  "level_plaque": {
+    "file": "level_plaque.png",
+    "width": 507,
+    "height": 114
+  },
+  "heart_counter": {
+    "file": "heart_counter.png",
+    "width": 184,
+    "height": 65
+  },
+  "heart": {
+    "file": "heart.png",
+    "width": 72,
+    "height": 64
+  },
+  "timer_counter": {
+    "file": "timer_counter.png",
+    "width": 181,
+    "height": 67
+  },
+  "flower_counter": {
+    "file": "flower_counter.png",
+    "width": 166,
+    "height": 66
+  },
+  "generic_counter": {
+    "file": "generic_counter.png",
+    "width": 148,
+    "height": 65
+  },
+  "rules_panel": {
+    "file": "rules_panel.png",
+    "width": 657,
+    "height": 93
+  },
+  "board_frame": {
+    "file": "board_frame.png",
+    "width": 365,
+    "height": 331
+  },
+  "flower_piece": {
+    "file": "flower_piece.png",
+    "width": 90,
+    "height": 72
+  },
+  "flower_yellow": {
+    "file": "flower_yellow.png",
+    "width": 75,
+    "height": 74
+  },
+  "flower_pink": {
+    "file": "flower_pink.png",
+    "width": 72,
+    "height": 71
+  },
+  "flower_purple": {
+    "file": "flower_purple.png",
+    "width": 71,
+    "height": 71
+  },
+  "lock_badge": {
+    "file": "lock_badge.png",
+    "width": 59,
+    "height": 59
+  },
+  "x_marker": {
+    "file": "x_marker.png",
+    "width": 44,
+    "height": 51
+  },
+  "power_button": {
+    "file": "power_button.png",
+    "width": 167,
+    "height": 72
+  },
+  "power_button_active": {
+    "file": "power_button_active.png",
+    "width": 184,
+    "height": 86
+  },
+  "power_button_disabled": {
+    "file": "power_button_disabled.png",
+    "width": 179,
+    "height": 79
+  },
+  "power_button_ad": {
+    "file": "power_button_ad.png",
+    "width": 200,
+    "height": 92
+  },
+  "hint_bulb": {
+    "file": "hint_bulb.png",
+    "width": 87,
+    "height": 88
+  },
+  "undo_arrow": {
+    "file": "undo_arrow.png",
+    "width": 59,
+    "height": 65
+  },
+  "inventory_badge": {
+    "file": "inventory_badge.png",
+    "width": 70,
+    "height": 72
+  },
+  "progress_track": {
+    "file": "progress_track.png",
+    "width": 210,
+    "height": 63
+  },
+  "progress_fill": {
+    "file": "progress_fill.png",
+    "width": 232,
+    "height": 40
+  },
+  "star_empty": {
+    "file": "star_empty.png",
+    "width": 59,
+    "height": 59
+  },
+  "star_gold": {
+    "file": "star_gold.png",
+    "width": 77,
+    "height": 61
+  },
+  "score_counter": {
+    "file": "score_counter.png",
+    "width": 148,
+    "height": 65
+  }
+}

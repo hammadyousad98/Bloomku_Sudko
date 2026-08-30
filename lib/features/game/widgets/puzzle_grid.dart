@@ -14,8 +14,8 @@ class PuzzleGrid extends StatelessWidget {
   final List<int>? tutorialHighlightIndexes;
   final bool guidedModeActive;
   final int? guidedInteractableIndex;
-  final ValueChanged<int> onTileSingleTap;
-  final ValueChanged<int> onTileDoubleTap;
+  final ValueChanged<int> onTileTap;
+  final ValueChanged<int> onTileLongPress;
   final GlobalKey gridKey;
 
   const PuzzleGrid({
@@ -24,8 +24,8 @@ class PuzzleGrid extends StatelessWidget {
     required this.states,
     required this.colorMap,
     required this.colorRegions,
-    required this.onTileSingleTap,
-    required this.onTileDoubleTap,
+    required this.onTileTap,
+    required this.onTileLongPress,
     required this.gridKey,
     this.errorTileIndex,
     this.hintTileIndex,
@@ -58,8 +58,9 @@ class PuzzleGrid extends StatelessWidget {
             isHintRowCol = true;
           }
         }
-        
-        if (tutorialHighlightIndexes != null && tutorialHighlightIndexes!.contains(index)) {
+
+        if (tutorialHighlightIndexes != null &&
+            tutorialHighlightIndexes!.contains(index)) {
           isHintRowCol = true;
         }
 
@@ -77,8 +78,8 @@ class PuzzleGrid extends StatelessWidget {
           backgroundColor: colorMap[index],
           colorRegionIndex: colorRegions[index],
           state: states[index],
-          onTap: () => onTileSingleTap(index),
-          onDoubleTap: () => onTileDoubleTap(index),
+          onTap: () => onTileTap(index),
+          onLongPress: () => onTileLongPress(index),
           hasError: errorTileIndex == index,
           hasHint: hintTileIndex == index,
           isHintRowCol: isHintRowCol,
@@ -90,11 +91,12 @@ class PuzzleGrid extends StatelessWidget {
     );
 
     if (mineTileIndex != null) {
-      grid = grid.animate(onComplete: (c) => c.reverse())
+      grid = grid
+          .animate(onComplete: (c) => c.reverse())
           .shimmer(duration: 200.ms, color: Colors.red.withValues(alpha: 0.5))
           .shake(hz: 8, curve: Curves.easeInOutCubic, duration: 250.ms);
     }
-    
+
     return AspectRatio(
       aspectRatio: 1.0,
       child: grid,

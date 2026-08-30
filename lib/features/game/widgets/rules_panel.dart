@@ -1,17 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../tutorial/tutorial_cubit.dart';
-import '../../tutorial/tutorial_screen.dart';
+
+const _gameplaySprites = 'assets/images/sprites/gameplay';
 
 class RulesPanel extends StatelessWidget {
-  final bool blockFullDiagonal;
-  final bool blockMinDistance;
-  final int minDistance;
-  final bool blockKnightMove;
-  final bool hasMines;
-  final String? highlightedRule;
-
   const RulesPanel({
     super.key,
     required this.blockFullDiagonal,
@@ -22,136 +13,161 @@ class RulesPanel extends StatelessWidget {
     this.highlightedRule,
   });
 
+  final bool blockFullDiagonal;
+  final bool blockMinDistance;
+  final int minDistance;
+  final bool blockKnightMove;
+  final bool hasMines;
+  final String? highlightedRule;
+
   @override
   Widget build(BuildContext context) {
-    final theme = context.bloomkuTheme;
-
-    final List<_RuleChipData> rules = [
-      _RuleChipData(
-        ruleKey: 'colorRegion',
-        icon: Icons.palette,
-        label: "1 per color",
-        onTap: () => _showRuleSnack(
-            context, "Each color region contains exactly one piece."),
-      ),
-      _RuleChipData(
-        ruleKey: 'rowColumn',
-        icon: Icons.grid_on,
-        label: "1 per row & col",
-        onTap: () => _showRuleSnack(
-            context, "Every row and column contains exactly one piece."),
-      ),
-      _RuleChipData(
-        ruleKey: 'noTouch',
-        icon: Icons.block,
-        label: "No touching",
-        onTap: () => _showRuleSnack(context,
-            "No two pieces can be adjacent — including diagonally adjacent."),
-      ),
+    const visibleRules = [
+      ('rowColumn', 'One flower\nper row'),
+      ('rowColumn', 'One flower\nper column'),
+      ('colorRegion', 'One flower\nper region'),
+      ('noTouch', 'Flowers\ncannot touch'),
     ];
-
-    if (blockFullDiagonal) {
-      rules.add(_RuleChipData(
-        ruleKey: 'diagonal',
-        icon: Icons.close_fullscreen,
-        label: "No diagonal",
-        onTap: () => RuleTutorialDialog.show(
-            context, TutorialCubit.getFullDiagonalRule()),
-      ));
-    }
-    if (blockMinDistance) {
-      rules.add(_RuleChipData(
-        ruleKey: 'minDistance',
-        icon: Icons.open_in_full,
-        label: "Spread $minDistance+",
-        onTap: () => RuleTutorialDialog.show(
-            context, TutorialCubit.getMinDistanceRule(minDistance)),
-      ));
-    }
-    if (blockKnightMove) {
-      rules.add(_RuleChipData(
-        ruleKey: 'knightMove',
-        icon: Icons.extension,
-        label: "No ♞",
-        onTap: () => RuleTutorialDialog.show(
-            context, TutorialCubit.getKnightsMoveRule()),
-      ));
-    }
-    if (hasMines) {
-      rules.add(_RuleChipData(
-        ruleKey: 'mine',
-        icon: Icons.warning_amber_rounded,
-        label: "Hidden mines",
-        onTap: () => _showRuleSnack(
-            context, "⚠️ Hidden mines — one wrong step costs double."),
-      ));
-    }
-
     return SizedBox(
-      height: 48,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        itemCount: rules.length,
-        itemBuilder: (context, index) {
-          final rule = rules[index];
-          final isHighlighted = highlightedRule == rule.ruleKey;
-
-          Widget chip = ActionChip(
-            avatar: Icon(rule.icon,
-                size: 16,
-                color: isHighlighted ? Colors.white : theme.accentColor),
-            label: Text(rule.label,
-                style: TextStyle(
-                    color: isHighlighted ? Colors.white : theme.textPrimary)),
-            backgroundColor: isHighlighted ? Colors.amber : theme.cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-              side: isHighlighted
-                  ? const BorderSide(color: Colors.amberAccent, width: 2)
-                  : BorderSide.none,
+      height: 66,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        child: Semantics(
+          button: true,
+          label: 'Puzzle rules. Tap for details.',
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: () => _showRules(context),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  '$_gameplaySprites/rules_panel.png',
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.high,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(42, 8, 8, 8),
+                  child: Row(
+                    children: [
+                      for (var index = 0; index < visibleRules.length; index++)
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            decoration:
+                                highlightedRule == visibleRules[index].$1
+                                    ? BoxDecoration(
+                                        color: const Color(0x55FFD24D),
+                                        borderRadius: BorderRadius.circular(12),
+                                      )
+                                    : null,
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding:
+                                  EdgeInsets.only(left: index == 0 ? 17 : 23),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  visibleRules[index].$2,
+                                  textAlign: TextAlign.left,
+                                  style: const TextStyle(
+                                    fontFamily: 'Nunito',
+                                    fontSize: 11,
+                                    height: 1.05,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF4D2B19),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            onPressed: rule.onTap,
-          );
-
-          if (isHighlighted) {
-            chip =
-                chip.animate(onPlay: (c) => c.repeat(reverse: true)).boxShadow(
-                      begin: const BoxShadow(color: Colors.transparent),
-                      end: BoxShadow(
-                        color: Colors.amber.withValues(alpha: 0.6),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                      duration: const Duration(milliseconds: 800),
-                    );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: chip,
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 
-  void _showRuleSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+  void _showRules(BuildContext context) {
+    final rules = <_RuleData>[
+      const _RuleData(
+        icon: Icons.grid_on_rounded,
+        label: 'Rows and columns',
+        description: 'Every row and column must contain exactly one flower.',
+      ),
+      const _RuleData(
+        icon: Icons.palette_rounded,
+        label: 'Color regions',
+        description: 'Every colored region must contain exactly one flower.',
+      ),
+      const _RuleData(
+        icon: Icons.close_rounded,
+        label: 'No touching',
+        description: 'Flowers cannot touch, including diagonally.',
+      ),
+      if (blockFullDiagonal)
+        const _RuleData(
+          icon: Icons.close_fullscreen_rounded,
+          label: 'Full diagonals',
+          description: 'No two flowers may share a full diagonal.',
+        ),
+      if (blockMinDistance)
+        _RuleData(
+          icon: Icons.open_in_full_rounded,
+          label: 'Spread $minDistance+',
+          description: 'Flowers must remain at least $minDistance steps apart.',
+        ),
+      if (blockKnightMove)
+        const _RuleData(
+          icon: Icons.extension_rounded,
+          label: 'Knight move',
+          description: 'Flowers also block chess-knight destinations.',
+        ),
+      if (hasMines)
+        const _RuleData(
+          icon: Icons.warning_amber_rounded,
+          label: 'Hidden mines',
+          description: 'Some invalid cells hide mines and cost two lives.',
+        ),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFFF8E5B9),
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          itemCount: rules.length,
+          separatorBuilder: (_, __) => const Divider(color: Color(0x409B6337)),
+          itemBuilder: (context, index) => ListTile(
+            leading: Icon(rules[index].icon, color: const Color(0xFF658B25)),
+            title: Text(
+              rules[index].label,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w800, color: Color(0xFF4D2B19)),
+            ),
+            subtitle: Text(rules[index].description),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _RuleChipData {
-  final String ruleKey;
+class _RuleData {
+  const _RuleData({
+    required this.icon,
+    required this.label,
+    required this.description,
+  });
+
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
-
-  _RuleChipData(
-      {required this.ruleKey,
-      required this.icon,
-      required this.label,
-      required this.onTap});
+  final String description;
 }

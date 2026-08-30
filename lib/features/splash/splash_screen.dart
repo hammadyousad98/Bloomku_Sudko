@@ -6,9 +6,21 @@ import '../../core/di/service_locator.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/common/themed_icon.dart';
+import '../../core/analytics/onboarding_analytics.dart';
+import '../../core/config/feature_flags.dart';
+
+const mandatorySplashDuration = Duration(seconds: 4);
+const splashFadeDuration = Duration(milliseconds: 300);
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+    this.duration = mandatorySplashDuration,
+    this.onFinished,
+  });
+
+  final Duration duration;
+  final VoidCallback? onFinished;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -20,12 +32,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    if (sl.isRegistered<OnboardingAnalytics>()) {
+      sl<OnboardingAnalytics>().recordOnce('splash_started');
+    }
     _navigateToNext();
   }
 
   Future<void> _navigateToNext() async {
-    // Wait 2.0 seconds before starting fade out
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(widget.duration - splashFadeDuration);
     if (!mounted) return;
 
     setState(() {
@@ -33,13 +47,24 @@ class _SplashScreenState extends State<SplashScreen> {
     });
 
     // Wait for the fade out to complete
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(splashFadeDuration);
     if (!mounted) return;
+
+    if (widget.onFinished != null) {
+      widget.onFinished!();
+      return;
+    }
 
     final progressRepo = sl<ProgressRepository>();
     final progress = progressRepo.getProgress();
+    if (sl.isRegistered<OnboardingAnalytics>()) {
+      sl<OnboardingAnalytics>().record('splash_completed', metadata: {
+        'destination': progress.tutorialSeen ? 'menu' : 'tutorial',
+      });
+    }
 
-    if (progress.tutorialSeen) {
+    if (progress.tutorialSeen ||
+        !FeatureFlags.current.nonBlockingStartupAndTutorial) {
       context.go('/menu');
     } else {
       context.go('/tutorial');
@@ -53,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       body: AnimatedOpacity(
         opacity: _fadeOut ? 0.0 : 1.0,
-        duration: const Duration(milliseconds: 300),
+        duration: splashFadeDuration,
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(

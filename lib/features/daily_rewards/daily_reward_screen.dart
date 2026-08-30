@@ -404,6 +404,8 @@ class _DayCard extends StatelessWidget {
     if (reward.extraLives > 0) items.add('❤️×${reward.extraLives}');
     if (reward.undos > 0) items.add('↩️×${reward.undos}');
     if (reward.bulbs > 0) items.add('🌟×${reward.bulbs}');
+    if (reward.autoMarks > 0) items.add('✕×${reward.autoMarks}');
+    if (reward.streakFreezes > 0) items.add('❄️×${reward.streakFreezes}');
 
     return Column(
       children: items
@@ -511,6 +513,12 @@ class _TomorrowPreview extends StatelessWidget {
       parts.add(
           '🌟 ${tomorrow.bulbs} Row Solve${tomorrow.bulbs > 1 ? "s" : ""}');
     }
+    if (tomorrow.autoMarks > 0) {
+      parts.add('✕ ${tomorrow.autoMarks} AutoMark');
+    }
+    if (tomorrow.streakFreezes > 0) {
+      parts.add('❄️ ${tomorrow.streakFreezes} Streak Freeze');
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -575,6 +583,12 @@ class _ClaimCelebration extends StatelessWidget {
     }
     if (reward.bulbs > 0) {
       parts.add('🌟 +${reward.bulbs} Row Solve${reward.bulbs > 1 ? "s" : ""}');
+    }
+    if (reward.autoMarks > 0) {
+      parts.add('✕ +${reward.autoMarks} AutoMark');
+    }
+    if (reward.streakFreezes > 0) {
+      parts.add('❄️ +${reward.streakFreezes} Streak Freeze');
     }
 
     return Container(

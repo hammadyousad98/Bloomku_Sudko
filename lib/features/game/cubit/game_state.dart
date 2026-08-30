@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../core/utils/daily_challenge_config.dart';
 import '../../../core/utils/puzzle_generator.dart';
+import '../domain/star_calculation.dart';
 
 enum GamePhase {
   loading,
@@ -13,6 +14,66 @@ enum GamePhase {
 }
 
 enum GameMode { progression, dailyChallenge }
+
+class WinSummary extends Equatable {
+  const WinSummary({
+    required this.starCalculation,
+    required this.personalBest,
+    required this.isNewBest,
+    required this.chapterName,
+    required this.collectibleCount,
+    required this.collectibleTarget,
+    required this.nextCollectible,
+    required this.nextUnlock,
+    required this.levelsToUnlock,
+    required this.chapterCompletedNow,
+    this.sessionGoalMessage,
+  });
+
+  final StarCalculation starCalculation;
+  final Duration personalBest;
+  final bool isNewBest;
+  final String chapterName;
+  final int collectibleCount;
+  final int collectibleTarget;
+  final String? nextCollectible;
+  final String? nextUnlock;
+  final int levelsToUnlock;
+  final bool chapterCompletedNow;
+  final String? sessionGoalMessage;
+
+  WinSummary copyWith({String? sessionGoalMessage}) => WinSummary(
+        starCalculation: starCalculation,
+        personalBest: personalBest,
+        isNewBest: isNewBest,
+        chapterName: chapterName,
+        collectibleCount: collectibleCount,
+        collectibleTarget: collectibleTarget,
+        nextCollectible: nextCollectible,
+        nextUnlock: nextUnlock,
+        levelsToUnlock: levelsToUnlock,
+        chapterCompletedNow: chapterCompletedNow,
+        sessionGoalMessage: sessionGoalMessage ?? this.sessionGoalMessage,
+      );
+
+  @override
+  List<Object?> get props => [
+        starCalculation.stars,
+        starCalculation.mistakeStarEarned,
+        starCalculation.masteryStarEarned,
+        starCalculation.parTime,
+        personalBest,
+        isNewBest,
+        chapterName,
+        collectibleCount,
+        collectibleTarget,
+        nextCollectible,
+        nextUnlock,
+        levelsToUnlock,
+        chapterCompletedNow,
+        sessionGoalMessage,
+      ];
+}
 
 class GameState extends Equatable {
   final GamePhase phase;
@@ -30,6 +91,9 @@ class GameState extends Equatable {
   final int bulbCount;
   final int autoMarkCount;
   final int autoMarksUsed;
+  final int hintsUsed;
+  final int undosUsed;
+  final int solveRowsUsed;
   final int extraLiveCount;
   final PuzzleTrack activeTrack;
   final int levelNumber;
@@ -64,6 +128,7 @@ class GameState extends Equatable {
   final bool guidedGotchaActive;
   final bool guidedGotchaTriggered;
   final bool showGuidedRecap;
+  final WinSummary? winSummary;
 
   bool get powersEnabled =>
       phase == GamePhase.playing &&
@@ -89,6 +154,9 @@ class GameState extends Equatable {
     required this.bulbCount,
     required this.autoMarkCount,
     this.autoMarksUsed = 0,
+    this.hintsUsed = 0,
+    this.undosUsed = 0,
+    this.solveRowsUsed = 0,
     required this.extraLiveCount,
     required this.activeTrack,
     required this.levelNumber,
@@ -122,6 +190,7 @@ class GameState extends Equatable {
     this.guidedGotchaActive = false,
     this.guidedGotchaTriggered = false,
     this.showGuidedRecap = false,
+    this.winSummary,
   });
 
   GameState copyWith({
@@ -140,6 +209,9 @@ class GameState extends Equatable {
     int? bulbCount,
     int? autoMarkCount,
     int? autoMarksUsed,
+    int? hintsUsed,
+    int? undosUsed,
+    int? solveRowsUsed,
     int? extraLiveCount,
     PuzzleTrack? activeTrack,
     int? levelNumber,
@@ -180,6 +252,8 @@ class GameState extends Equatable {
     bool? guidedGotchaActive,
     bool? guidedGotchaTriggered,
     bool? showGuidedRecap,
+    WinSummary? winSummary,
+    bool clearWinSummary = false,
   }) {
     return GameState(
       phase: phase ?? this.phase,
@@ -197,6 +271,9 @@ class GameState extends Equatable {
       bulbCount: bulbCount ?? this.bulbCount,
       autoMarkCount: autoMarkCount ?? this.autoMarkCount,
       autoMarksUsed: autoMarksUsed ?? this.autoMarksUsed,
+      hintsUsed: hintsUsed ?? this.hintsUsed,
+      undosUsed: undosUsed ?? this.undosUsed,
+      solveRowsUsed: solveRowsUsed ?? this.solveRowsUsed,
       extraLiveCount: extraLiveCount ?? this.extraLiveCount,
       activeTrack: activeTrack ?? this.activeTrack,
       levelNumber: levelNumber ?? this.levelNumber,
@@ -244,6 +321,7 @@ class GameState extends Equatable {
       guidedGotchaTriggered:
           guidedGotchaTriggered ?? this.guidedGotchaTriggered,
       showGuidedRecap: showGuidedRecap ?? this.showGuidedRecap,
+      winSummary: clearWinSummary ? null : winSummary ?? this.winSummary,
     );
   }
 
@@ -264,6 +342,9 @@ class GameState extends Equatable {
         bulbCount,
         autoMarkCount,
         autoMarksUsed,
+        hintsUsed,
+        undosUsed,
+        solveRowsUsed,
         extraLiveCount,
         activeTrack,
         levelNumber,
@@ -297,5 +378,6 @@ class GameState extends Equatable {
         guidedGotchaActive,
         guidedGotchaTriggered,
         showGuidedRecap,
+        winSummary,
       ];
 }

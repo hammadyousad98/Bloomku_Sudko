@@ -41,4 +41,35 @@ void main() {
       TileState.revealedMine,
     ]);
   });
+
+  test('AutoMark charges once only when at least one cell can change', () {
+    final applicable = List.filled(9, TileState.empty)
+      ..[4] = TileState.lockedObject;
+    final plan = planAutoMark(applicable, 3, const {}, inventory: 2);
+    expect(plan.canApply, isTrue);
+    expect(plan.consumesInventory, isTrue);
+    expect(plan.targetIndexes, hasLength(8));
+
+    final noInventory = planAutoMark(applicable, 3, const {}, inventory: 0);
+    expect(noInventory.canApply, isFalse);
+    expect(noInventory.consumesInventory, isFalse);
+    expect(noInventory.targetIndexes, isNotEmpty);
+
+    final noOp = planAutoMark(
+      List.filled(9, TileState.marker)..[4] = TileState.lockedObject,
+      3,
+      const {},
+      inventory: 2,
+    );
+    expect(noOp.targetIndexes, isEmpty);
+    expect(noOp.consumesInventory, isFalse);
+  });
+
+  test('locked flowers are immutable and never reverted by AutoMark undo', () {
+    expect(isImmutableTile(TileState.lockedObject), isTrue);
+    expect(isImmutableTile(TileState.object), isFalse);
+    final states = [TileState.lockedObject, TileState.autoMarker];
+    expect(revertAutoMarkTransaction(states, [0, 1]), 1);
+    expect(states, [TileState.lockedObject, TileState.empty]);
+  });
 }
